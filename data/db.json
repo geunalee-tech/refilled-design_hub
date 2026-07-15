@@ -19,24 +19,6 @@
       "requestedAt": "2026-07-15"
     },
     {
-      "id": "mrlq1v7p6y2ve",
-      "title": "상세페이지 성분 섹션 카피 반영",
-      "project": "p-detail",
-      "status": "doing",
-      "due": "2026-07-18",
-      "notes": "",
-      "createdAt": "2026-07-15T06:51:20.005Z",
-      "assignees": [
-        "m-yeonwoo"
-      ],
-      "requester": "",
-      "kind": "project",
-      "priority": "중간",
-      "link": "",
-      "files": [],
-      "requestedAt": "2026-07-15"
-    },
-    {
       "id": "mrlq1v7pr3gf3",
       "title": "아마존 A+ 콘텐츠 배너 3종",
       "project": "p-global",
@@ -135,6 +117,6 @@
   "rituals": [],
   "archive": [],
   "trends": [],
-  "updatedAt": "2026-07-15T13:30:21.986Z",
+  "updatedAt": "2026-07-15T13:30:25.121Z",
   "seeded": true
 }
