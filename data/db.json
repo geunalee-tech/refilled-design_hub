@@ -12,7 +12,7 @@
       "status": "req",
       "priority": "🚨긴급",
       "requestedAt": "2026-07-20",
-      "due": "2026-07-29",
+      "due": "2026-07-16",
       "requester": "MD팀",
       "link": "https://www.figma.com/board/XQojqpXAkbUw5eStV6fBmM/-MD%ED%8C%80--%EC%98%AC%EB%A6%AC%EB%B8%8C%EC%98%81-%EC%97%85%EB%AC%B4%EC%9A%94%EC%B2%AD?node-id=3437-2010&t=Y2UvWyAN8WKfXfiY-4",
       "files": [
@@ -110,6 +110,6 @@
   ],
   "trends": [],
   "config": {},
-  "updatedAt": "2026-07-15T13:50:52.435Z",
+  "updatedAt": "2026-07-15T13:51:37.867Z",
   "seeded": true
 }
