@@ -1,24 +1,6 @@
 {
   "tasks": [
     {
-      "id": "mrlq1v7pm26ap",
-      "title": "엑소좀 77% 인포그래픽 최종 시안",
-      "project": "p-exo",
-      "status": "doing",
-      "due": "2026-07-15",
-      "notes": "",
-      "createdAt": "2026-07-15T06:51:20.005Z",
-      "assignees": [
-        "m-guena"
-      ],
-      "requester": "",
-      "kind": "project",
-      "priority": "중간",
-      "link": "",
-      "files": [],
-      "requestedAt": "2026-07-15"
-    },
-    {
       "id": "mrlq1v7pr3gf3",
       "title": "아마존 A+ 콘텐츠 배너 3종",
       "project": "p-global",
@@ -99,6 +81,6 @@
   "rituals": [],
   "archive": [],
   "trends": [],
-  "updatedAt": "2026-07-15T13:30:27.926Z",
+  "updatedAt": "2026-07-15T13:30:30.086Z",
   "seeded": true
 }
