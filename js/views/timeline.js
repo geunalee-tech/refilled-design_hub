@@ -197,10 +197,11 @@ const PALETTE = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A
 
 function addProject(main) {
   const db = store.db;
-  const stepRows = key => TEMPLATES[key].steps.map(([name, off], i) => `
-    <label class="tpl-step"><input type="checkbox" checked data-step="${i}">
-      <span>${esc(name)}</span><b>D+${off}</b></label>`).join('')
-    || '<div class="empty" style="padding:8px 2px">하위 업무 없이 시작해요. 타임라인에서 직접 추가할 수 있어요.</div>';
+  /* 편집 가능한 단계 상태: [{name, off, on}] */
+  let steps = [];
+  const loadTpl = key => { steps = TEMPLATES[key].steps.map(([name, off]) => ({ name, off, on: true })); };
+  loadTpl('detail');
+  const maxOff = () => Math.max(3, ...steps.filter(st => st.on).map(st => st.off), 0);
 
   openModal(`
     <h2>프로젝트 추가</h2>
@@ -213,44 +214,109 @@ function addProject(main) {
     </div>
     <div class="frow">
       <div class="field"><label>시작일</label><input type="date" id="np-start" value="${todayISO()}"></div>
-      <div class="field"><label>예상 기간</label><input id="np-dur" type="number" min="3" max="180" value="${TEMPLATES.detail.dur}"> <span class="muted" style="font-size:11px">일</span></div>
+      <div class="field"><label>예상 기간 <span class="muted" style="font-weight:400">(마지막 단계 D+n으로 자동 계산)</span></label>
+        <div><input id="np-dur" type="number" min="3" max="180" value="${TEMPLATES.detail.dur}"> <span class="muted" style="font-size:11px">일</span></div></div>
     </div>
-    <div class="field"><label>자동 생성할 하위 업무 <span class="muted" style="font-weight:400">(체크 해제 = 제외 · D+n은 시작일 기준)</span></label>
-      <div id="np-steps">${stepRows('detail')}</div>
+    <div class="field"><label>하위 업무 <span class="muted" style="font-weight:400">(이름·D+n 수정 가능 · 미리보기의 점을 드래그해도 돼요)</span></label>
+      <div id="np-preview" class="np-preview"></div>
+      <div id="np-steps"></div>
+      <button class="btn sm" id="np-addstep" style="margin-top:2px">+ 단계 추가</button>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" data-close>취소</button>
       <button class="btn primary" id="np-save">프로젝트 생성</button>
     </div>
   `, body => {
-    const q = s => body.querySelector(s);
-    q('#np-type').onchange = e => {
-      q('#np-steps').innerHTML = stepRows(e.target.value);
-      q('#np-dur').value = TEMPLATES[e.target.value].dur;
+    const q = sel => body.querySelector(sel);
+
+    /* ── 예상 기간 = 체크된 단계의 최대 D+n (공통 규칙) ── */
+    const syncDur = () => { q('#np-dur').value = maxOff(); drawPreview(); };
+
+    /* ── 미니 간트 미리보기: 점 드래그로 D+n 조정 ── */
+    const drawPreview = () => {
+      const dur = Math.max(+q('#np-dur').value || maxOff(), maxOff());
+      const ticks = [];
+      const tickStep = dur > 35 ? 14 : 7;
+      for (let d = 0; d <= dur; d += tickStep) ticks.push(`<span class="np-tick" style="left:${d / dur * 100}%">D+${d}</span>`);
+      q('#np-preview').innerHTML = `
+        <div class="np-track">
+          ${ticks.join('')}
+          ${steps.map((st, i) => st.on ? `
+            <div class="np-dot" data-dot="${i}" style="left:calc(${st.off / dur * 100}% - 7px)" title="${esc(st.name)} · D+${st.off}"></div>
+            <span class="np-dot-lb" style="left:calc(${st.off / dur * 100}% - 7px);top:${i % 2 ? 24 : -14}px">${st.off}</span>` : '').join('')}
+        </div>`;
+      // 점 드래그
+      q('#np-preview').querySelectorAll('[data-dot]').forEach(el => {
+        el.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          const i = +el.dataset.dot;
+          const track = el.closest('.np-track');
+          const pxPerDay = track.getBoundingClientRect().width / dur;
+          const startX = e.clientX, orig = steps[i].off;
+          el.setPointerCapture(e.pointerId);
+          const mv = ev => {
+            steps[i].off = Math.max(0, Math.min(180, orig + Math.round((ev.clientX - startX) / pxPerDay)));
+            el.style.left = `calc(${steps[i].off / dur * 100}% - 7px)`;
+            const row = body.querySelector(`[data-row="${i}"] .st-off`);
+            if (row) row.value = steps[i].off;
+          };
+          const up = () => {
+            el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up);
+            syncDur();
+          };
+          el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+        });
+      });
     };
+
+    /* ── 단계 행: 체크 + 이름 입력 + D+n 입력 + 삭제 ── */
+    const drawRows = () => {
+      q('#np-steps').innerHTML = steps.map((st, i) => `
+        <div class="tpl-step tpl-edit ${st.on ? '' : 'off'}" data-row="${i}">
+          <input type="checkbox" class="st-on" ${st.on ? 'checked' : ''}>
+          <input class="st-name" value="${esc(st.name)}" placeholder="단계 이름">
+          <span class="st-d">D+</span><input class="st-off" type="number" min="0" max="180" value="${st.off}">
+          <button class="st-del" title="단계 삭제">✕</button>
+        </div>`).join('')
+        || '<div class="empty" style="padding:8px 2px">하위 업무 없이 시작해요. "+ 단계 추가"로 직접 구성할 수 있어요.</div>';
+      q('#np-steps').querySelectorAll('[data-row]').forEach(row => {
+        const i = +row.dataset.row;
+        row.querySelector('.st-on').onchange = e => { steps[i].on = e.target.checked; row.classList.toggle('off', !steps[i].on); syncDur(); };
+        row.querySelector('.st-name').onchange = e => { steps[i].name = e.target.value.trim() || steps[i].name; };
+        row.querySelector('.st-off').onchange = e => { steps[i].off = Math.max(0, Math.min(180, +e.target.value || 0)); syncDur(); };
+        row.querySelector('.st-del').onclick = () => { steps.splice(i, 1); drawRows(); syncDur(); };
+      });
+    };
+
+    q('#np-type').onchange = e => { loadTpl(e.target.value); drawRows(); syncDur(); };
+    q('#np-dur').onchange = () => { q('#np-dur').value = Math.max(+q('#np-dur').value || 3, maxOff()); drawPreview(); };
+    q('#np-addstep').onclick = () => {
+      steps.push({ name: '새 단계', off: maxOff() + 3, on: true });
+      drawRows(); syncDur();
+    };
+    drawRows(); syncDur();
+
     q('#np-save').onclick = () => {
       const name = q('#np-name').value.trim();
       if (!name) return toast('프로젝트 이름을 입력해주세요', true);
-      const tpl = TEMPLATES[q('#np-type').value];
       const start = q('#np-start').value || todayISO();
-      const dur = Math.max(3, +q('#np-dur').value || tpl.dur);
+      const dur = Math.max(3, +q('#np-dur').value || maxOff(), maxOff());
       const owner = q('#np-owner').value || null;
       const p = { id: uid(), name, color: PALETTE[db.projects.length % PALETTE.length],
                   start, end: addDays(start, dur), owner };
       db.projects.push(p);
-      const checked = [...body.querySelectorAll('[data-step]:checked')].map(c => +c.dataset.step);
-      tpl.steps.forEach(([tname, off], i) => {
-        if (!checked.includes(i)) return;
+      const use = steps.filter(st => st.on && st.name.trim());
+      use.forEach(st => {
         db.tasks.push({
-          id: uid(), kind: 'project', title: `${name} — ${tname}`, project: p.id,
+          id: uid(), kind: 'project', title: `${name} — ${st.name.trim()}`, project: p.id,
           assignees: owner ? [owner] : [], status: 'req', priority: '중간',
-          requester: '', requestedAt: todayISO(), due: addDays(start, Math.min(off, dur)),
+          requester: '', requestedAt: todayISO(), due: addDays(start, st.off),
           link: '', files: [], notes: '', createdAt: new Date().toISOString()
         });
       });
       expanded.add(p.id);
       store.save(); closeModal(); renderTimeline(main);
-      toast(`"${name}" 생성 — 하위 업무 ${checked.length}건이 일정에 배치됐어요`);
+      toast(`"${name}" 생성 — 하위 업무 ${use.length}건이 일정에 배치됐어요`);
     };
   });
 }

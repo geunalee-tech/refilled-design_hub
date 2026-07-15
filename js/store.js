@@ -12,7 +12,7 @@ export const todayISO = (offset = 0) => {
 
 const DEFAULT_DB = {
   tasks: [], projects: [], members: [], rituals: [], archive: [], trends: [],
-  updatedAt: null, seeded: false
+  config: {}, updatedAt: null, seeded: false
 };
 
 function loadJSON(key, fallback) {
@@ -125,6 +125,7 @@ class Store {
 
   /* ── 구버전 데이터 → 신규 스키마 마이그레이션 ── */
   migrate() {
+    if (!this.db.config) this.db.config = {};
     const map = { inbox: 'req', todo: 'req', blocked: 'confirm' };
     (this.db.tasks || []).forEach(t => {
       if (map[t.status]) t.status = map[t.status];
@@ -156,6 +157,43 @@ class Store {
     if (!res.ok) throw new Error('업로드 실패 ' + res.status);
     const json = await res.json();
     return { name: fileName, url: json.content.download_url };
+  }
+
+  /* ── Slack 알림 (Incoming Webhook) ── */
+  get slackWebhook() {
+    try { return this.db.config?.slackHookB64 ? atob(this.db.config.slackHookB64) : ''; }
+    catch { return ''; }
+  }
+  set slackWebhook(url) {
+    this.db.config.slackHookB64 = url ? btoa(url) : '';
+    this.save();
+  }
+  async notifySlack(text, blocks = null) {
+    const hook = this.slackWebhook;
+    if (!hook) return false;
+    // no-cors 단순 요청: 프리플라이트 없이 슬랙이 수신 (응답은 확인 불가)
+    await fetch(hook, {
+      method: 'POST', mode: 'no-cors',
+      body: JSON.stringify(blocks ? { text, blocks } : { text })
+    });
+    return true;
+  }
+  notifyNewRequest(t) {
+    const hook = this.slackWebhook;
+    if (!hook) return;
+    const appUrl = location.origin + location.pathname;
+    const proj = this.projectName(t.project);
+    const lines = [
+      `:inbox_tray: *새 요청 업무가 등록됐어요*`,
+      `*업무:* ${t.title}`,
+      `*프로젝트:* ${proj}`,
+      `*요청일:* ${t.requestedAt || '-'}   *마감일:* ${t.due || '미정'}`,
+      `*요청자:* ${t.requester || '미기재'}   *담당:* ${this.assigneeNames(t)}`,
+      t.link ? `*작업 링크:* ${t.link}` : '',
+      t.notes ? `*메모:* ${t.notes}` : '',
+      `<${appUrl}#/tasks/requests|→ 업무 보드에서 확인>`
+    ].filter(Boolean);
+    this.notifySlack(lines.join('\n')).catch(() => {});
   }
 
   seedIfEmpty() {

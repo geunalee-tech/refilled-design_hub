@@ -4,6 +4,18 @@ import { esc, openModal, closeModal, toast, dday, fmtDate, STATUS, PRIORITY, $ }
 import { renderTimeline } from './timeline.js';
 
 const ORDER = ['req', 'doing', 'confirm'];
+const MIN_LEAD_BDAYS = 2;   // 요청→마감 최소 영업일
+const OVERLOAD_LIMIT = 3;   // 같은 마감일 경고 기준
+
+function bizDays(fromISO, toISO) {
+  if (!fromISO || !toISO || toISO < fromISO) return 0;
+  let n = 0; const d = new Date(fromISO + 'T00:00:00'); const end = new Date(toISO + 'T00:00:00');
+  while (d < end) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) n++; }
+  return n;
+}
+function dueLoad(dueISO, exceptId) {
+  return store.db.tasks.filter(t => t.due === dueISO && t.status !== 'done' && t.id !== exceptId).length;
+}
 const NEXT = { req: 'doing', doing: 'confirm', confirm: 'done' };
 const NEXT_LABEL = { req: '진행 →', doing: '컨펌 요청 →', confirm: '완료 ✓' };
 const PALETTE = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
@@ -15,7 +27,7 @@ let doneOpen = false;
 export const subTabs = active => `
   <div class="subtabs">
     <a href="#/tasks" class="${active === '' ? 'on' : ''}">통합 보드</a>
-    <a href="#/tasks/requests" class="${active === 'requests' ? 'on' : ''}">타팀 요청</a>
+    <a href="#/tasks/requests" class="${active === 'requests' ? 'on' : ''}">요청 업무</a>
     <a href="#/tasks/projects" class="${active === 'projects' ? 'on' : ''}">프로젝트 타임라인</a>
   </div>`;
 
@@ -40,12 +52,12 @@ export function renderTasks(main, sub = '') {
 
   main.innerHTML = `
   <div class="page-head"><span class="eyebrow">Task Stream</span>
-    <h1>업무 보드</h1><p>${sub === 'requests' ? '타팀에서 인입된 단건 요청만 모아 봐요.' : '타팀 요청과 프로젝트 업무를 한 흐름에서 관리해요. 요청 → 진행 중 → 컨펌중 → 완료.'}</p></div>
+    <h1>업무 보드</h1><p>${sub === 'requests' ? '타팀 등에서 인입된 요청 업무만 모아 봐요.' : '요청 업무와 프로젝트 업무를 한 흐름에서 관리해요. 요청 → 진행 중 → 컨펌중 → 완료.'}</p></div>
   ${subTabs(sub)}
   <div class="board-bar">
     <button class="btn primary" id="new-task">+ 업무 추가</button>
     ${sub === 'requests' ? '' : `<div class="kind-chips">
-      ${[['', '전체'], ['request', '타팀 요청'], ['project', '프로젝트']].map(([v, l]) =>
+      ${[['', '전체'], ['request', '요청 업무'], ['project', '프로젝트']].map(([v, l]) =>
         `<button class="chip ${filter.kind === v ? 'on' : ''}" data-kind="${v}">${l}</button>`).join('')}
     </div>`}
     <select id="f-assignee"><option value="">담당자 전체</option>
@@ -93,7 +105,7 @@ function card(t) {
       <span class="tag" style="background:${(p?.color || '#888') + '22'};color:${p?.color || '#666'}">${esc(store.projectName(t.project))}</span>
       <span class="muted" style="font-size:10.5px">${esc(store.assigneeNames(t))}</span>
       ${t.due ? `<span class="due ${over ? 'over' : ''}">${t.due.slice(5)} · ${dday(t.due)}</span>` : ''}
-      ${t.kind === 'request' ? `<span class="tag blue">${esc(t.requester || '타팀')}</span>` : ''}
+      ${t.kind === 'request' ? `<span class="tag blue">${esc(t.requester || '요청')}</span>` : ''}
       ${t.files?.length ? `<span class="muted" style="font-size:10px">📎${t.files.length}</span>` : ''}
       ${t.link ? `<span class="muted" style="font-size:10px">🔗</span>` : ''}
     </div>
@@ -102,16 +114,28 @@ function card(t) {
 }
 
 /* ── 완료 아카이브 (토글 + 검색) ── */
-function doneSection(tasks) {
+function doneFiltered(tasks) {
   let done = tasks.filter(t => t.status === 'done');
-  const months = [...new Set(done.map(t => (t.doneAt || '').slice(0, 7)).filter(Boolean))].sort().reverse();
   if (doneQ.q) done = done.filter(t => t.title.toLowerCase().includes(doneQ.q.toLowerCase()));
   if (doneQ.assignee) done = done.filter(t => (t.assignees || []).includes(doneQ.assignee));
   if (doneQ.month) done = done.filter(t => (t.doneAt || '').startsWith(doneQ.month));
-  done.sort((a, b) => (b.doneAt || '') < (a.doneAt || '') ? -1 : 1);
+  return done.sort((a, b) => (b.doneAt || '') < (a.doneAt || '') ? -1 : 1);
+}
+function doneRows(tasks) {
+  return doneFiltered(tasks).map(t => `<tr data-done="${t.id}">
+      <td style="white-space:nowrap">${esc(t.doneAt || '—')}</td>
+      <td>${esc(t.title)}${t.kind === 'request' ? ` <span class="tag blue">${esc(t.requester || '요청')}</span>` : ''}</td>
+      <td>${esc(store.projectName(t.project))}</td>
+      <td>${esc(store.assigneeNames(t))}</td>
+      <td style="text-align:right"><button class="btn sm" data-reopen="${t.id}">되돌리기</button></td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">완료된 업무가 없어요</td></tr>';
+}
+function doneSection(tasks) {
+  const done = doneFiltered(tasks);
+  const months = [...new Set(tasks.filter(t => t.status === 'done').map(t => (t.doneAt || '').slice(0, 7)).filter(Boolean))].sort().reverse();
 
   return `<details class="done-sec" id="done-sec" ${doneOpen ? 'open' : ''}>
-    <summary>완료 <span class="cnt">${done.length}건</span><span class="hint">날짜·제목·담당자로 검색</span></summary>
+    <summary>완료 <span class="cnt" id="dq-cnt">${done.length}건</span><span class="hint">날짜·제목·담당자로 검색</span></summary>
     <div class="done-bar">
       <input id="dq-text" placeholder="제목 검색" value="${esc(doneQ.q)}">
       <select id="dq-assignee"><option value="">담당자 전체</option>
@@ -120,13 +144,7 @@ function doneSection(tasks) {
         ${months.map(mo => `<option value="${mo}" ${doneQ.month === mo ? 'selected' : ''}>${mo.replace('-', '년 ')}월</option>`).join('')}</select>
     </div>
     <table class="arc-table done-table"><thead><tr><th>완료일</th><th>업무</th><th>프로젝트</th><th>담당자</th><th></th></tr></thead>
-    <tbody>${done.map(t => `<tr data-done="${t.id}">
-      <td style="white-space:nowrap">${esc(t.doneAt || '—')}</td>
-      <td>${esc(t.title)}${t.kind === 'request' ? ` <span class="tag blue">${esc(t.requester || '타팀')}</span>` : ''}</td>
-      <td>${esc(store.projectName(t.project))}</td>
-      <td>${esc(store.assigneeNames(t))}</td>
-      <td style="text-align:right"><button class="btn sm" data-reopen="${t.id}">되돌리기</button></td>
-    </tr>`).join('') || '<tr><td colspan="5" class="empty">완료된 업무가 없어요</td></tr>'}</tbody></table>
+    <tbody id="dq-body">${doneRows(tasks)}</tbody></table>
   </details>`;
 }
 
@@ -134,19 +152,36 @@ function bindDoneSection(main, sub = '') {
   const sec = $('#done-sec'); if (!sec) return;
   sec.querySelector('summary').addEventListener('click', () => { doneOpen = !sec.open; });
   const re = () => { doneOpen = true; renderTasks(main, sub); };
-  $('#dq-text').oninput = e => { doneQ.q = e.target.value; re(); $('#dq-text').focus(); $('#dq-text').setSelectionRange(doneQ.q.length, doneQ.q.length); };
+
+  const forceKind = sub === 'requests' ? 'request' : '';
+  const match = t =>
+    (!(forceKind || filter.kind) || t.kind === (forceKind || filter.kind)) &&
+    (!filter.assignee || (t.assignees || []).includes(filter.assignee)) &&
+    (!filter.project || t.project === filter.project);
+
+  const bindRows = () => {
+    sec.querySelectorAll('[data-reopen]').forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      const t = store.db.tasks.find(x => x.id === b.dataset.reopen);
+      t.status = 'doing'; delete t.doneAt; store.save();
+      doneOpen = true; renderTasks(main, sub); toast('진행 중으로 되돌렸어요');
+    });
+    sec.querySelectorAll('[data-done]').forEach(tr => tr.onclick = e => {
+      if (e.target.matches('button')) return;
+      editTask(tr.dataset.done);
+    });
+  };
+  // 입력창을 다시 그리지 않고 목록만 갱신 → 한글 조합이 깨지지 않아요
+  $('#dq-text').oninput = e => {
+    doneQ.q = e.target.value;
+    const tasks = store.db.tasks.filter(match);
+    $('#dq-body').innerHTML = doneRows(tasks);
+    $('#dq-cnt').textContent = doneFiltered(tasks).length + '건';
+    bindRows();
+  };
   $('#dq-assignee').onchange = e => { doneQ.assignee = e.target.value; re(); };
   $('#dq-month').onchange = e => { doneQ.month = e.target.value; re(); };
-  main.querySelectorAll('[data-reopen]').forEach(b => b.onclick = e => {
-    e.stopPropagation();
-    const t = store.db.tasks.find(x => x.id === b.dataset.reopen);
-    t.status = 'doing'; delete t.doneAt; store.save();
-    doneOpen = true; renderTasks(main, sub); toast('진행 중으로 되돌렸어요');
-  });
-  main.querySelectorAll('[data-done]').forEach(tr => tr.onclick = e => {
-    if (e.target.matches('button')) return;
-    editTask(tr.dataset.done);
-  });
+  bindRows();
 }
 
 /* ── 업무 추가/수정 모달 ── */
@@ -171,7 +206,7 @@ export function editTask(id, isRequest = false, preset = {}) {
     <h2>${id ? '업무 수정' : '업무 추가'}</h2>
     <div class="frow">
       <div class="field"><label>구분</label><select id="t-kind">
-        <option value="request" ${t.kind === 'request' ? 'selected' : ''}>타팀 요청</option>
+        <option value="request" ${t.kind === 'request' ? 'selected' : ''}>요청 업무</option>
         <option value="project" ${t.kind === 'project' ? 'selected' : ''}>프로젝트</option></select></div>
       <div class="field"><label>우선순위</label><select id="t-pri">
         ${PRIORITY.map(p => `<option ${t.priority === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
@@ -193,8 +228,10 @@ export function editTask(id, isRequest = false, preset = {}) {
       <div class="field"><label>상태</label><select id="t-status">
         ${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
       <div class="field"><label>요청일</label><input type="date" id="t-reqat" value="${t.requestedAt || todayISO()}"></div>
-      <div class="field"><label>마감일</label><input type="date" id="t-due" value="${t.due || ''}"></div>
+      <div class="field"><label>마감일</label><input type="date" id="t-due" value="${t.due || ''}">
+        <span class="due-load" id="t-dueload"></span></div>
     </div>
+    <div class="guard-box" id="t-guard" hidden></div>
     <div class="field" id="f-requester"><label>요청자</label><input id="t-requester" value="${esc(t.requester || '')}" placeholder="예: 마케팅팀 이지수"></div>
     <div class="field"><label>링크 (피그마·노션·드라이브 등)</label><input id="t-link" value="${esc(t.link || '')}" placeholder="https://"></div>
     <div class="field"><label>파일 첨부 <span class="muted" style="font-weight:400">(최대 5개 · 개당 8MB)</span></label>
@@ -218,6 +255,18 @@ export function editTask(id, isRequest = false, preset = {}) {
     // 구분에 따라 요청자 필드 강조
     const syncKind = () => { q('#f-requester').style.display = q('#t-kind').value === 'request' ? '' : 'none'; };
     q('#t-kind').onchange = syncKind; syncKind();
+
+    // 마감일 선택 시 그 날짜의 부하를 실시간 표시
+    const syncLoad = () => {
+      const el = q('#t-dueload'); const due = q('#t-due').value;
+      if (!due) { el.textContent = ''; return; }
+      const n = dueLoad(due, id);
+      const lead = bizDays(q('#t-reqat').value || todayISO(), due);
+      el.innerHTML = `같은 날 마감 <b>${n}건</b> · 영업일 <b>${lead}일</b>`;
+      el.className = 'due-load' + (n >= OVERLOAD_LIMIT || lead < MIN_LEAD_BDAYS ? ' warn' : '');
+      q('#t-guard').hidden = true; // 날짜 바꾸면 이전 경고 숨김
+    };
+    q('#t-due').onchange = syncLoad; q('#t-reqat').onchange = syncLoad; syncLoad();
 
     // 새 프로젝트 인라인 추가
     q('#t-project').onchange = e => q('#t-newproj').style.display = e.target.value === '__new' ? '' : 'none';
@@ -274,9 +323,50 @@ export function editTask(id, isRequest = false, preset = {}) {
       };
       if (!data.title) return toast('업무 제목을 입력해주세요', true);
       if (!assignees.length) return toast('담당자를 1명 이상 선택해주세요', true);
+
+      /* ── 요청 업무 가드레일 (신규 등록 시) ── */
+      if (!id && data.kind === 'request') {
+        // 1) 리드타임 하드 블록: 요청일→마감일 영업일 2일 미만이면 등록 불가
+        if (data.due && bizDays(data.requestedAt, data.due) < MIN_LEAD_BDAYS) {
+          const box = q('#t-guard');
+          box.hidden = false;
+          box.className = 'guard-box hard';
+          box.innerHTML = `<b>⛔ 등록할 수 없어요 — 일정 사전 논의가 필요해요</b>
+            요청일부터 마감일까지 <b>영업일 ${bizDays(data.requestedAt, data.due)}일</b>이에요.
+            디자인팀 리소스 확보를 위해 <b>최소 영업일 ${MIN_LEAD_BDAYS}일</b> 이전에 요청해주셔야 해요.<br>
+            마감일 조정이 어렵다면 등록 전에 디자인팀과 일정을 먼저 협의해주세요.
+            <div class="guard-actions">
+              ${store.slackWebhook ? '<button class="btn sm" id="t-guard-slack">슬랙으로 협의 요청 보내기</button>' : ''}
+            </div>`;
+          box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          const gs = q('#t-guard-slack');
+          if (gs) gs.onclick = async () => {
+            await store.notifySlack([
+              ':raised_hand: *일정 협의가 필요한 요청이 있어요* (리드타임 부족으로 등록 보류)',
+              `*업무:* ${data.title}`,
+              `*요청자:* ${data.requester || '미기재'}`,
+              `*희망 마감일:* ${data.due} (영업일 ${bizDays(data.requestedAt, data.due)}일)`,
+              data.notes ? `*메모:* ${data.notes}` : ''
+            ].filter(Boolean).join('\n'));
+            toast('디자인팀 채널로 협의 요청을 보냈어요');
+          };
+          return;
+        }
+        // 2) 부하 소프트 블록: 같은 마감일에 미완료 업무 3건 이상이면 확인 후 등록
+        if (data.due) {
+          const load = dueLoad(data.due, null);
+          if (load >= OVERLOAD_LIMIT && !confirm(
+            `⚠️ ${data.due} 마감 업무가 이미 ${load}건 있어요.\n` +
+            `디자인팀 리소스가 몰리는 날이에요. 마감일을 분산하거나 사전 협의를 권장해요.\n\n그래도 이 날짜로 등록할까요?`)) return;
+        }
+      }
       if (data.status === 'done') data.doneAt = (id && t.doneAt) || todayISO();
       if (id) { if (data.status !== 'done') delete t.doneAt; Object.assign(t, data); }
-      else db.tasks.push({ id: uid(), createdAt: new Date().toISOString(), ...data });
+      else {
+        const nt = { id: uid(), createdAt: new Date().toISOString(), ...data };
+        db.tasks.push(nt);
+        if (nt.kind === 'request') store.notifyNewRequest(nt); // 슬랙 알림 (웹훅 설정 시)
+      }
       store.save(); closeModal(); toast('저장했어요');
       window.dispatchEvent(new Event('hashchange'));
     };

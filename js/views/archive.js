@@ -4,13 +4,26 @@ import { esc, openModal, closeModal, toast, $ } from '../ui.js';
 
 let q = '';
 
-export function renderArchive(main) {
+function filteredRows() {
   const db = store.db;
   let list = db.archive.slice().sort((a, b) => b.date < a.date ? -1 : 1);
   if (q) {
     const k = q.toLowerCase();
     list = list.filter(a => (a.title + a.tags + store.projectName(a.project)).toLowerCase().includes(k));
   }
+  return list.map(a => `<tr>
+      <td><a class="flink" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a>
+        ${a.notes ? `<div class="muted" style="font-size:11px;margin-top:2px">${esc(a.notes)}</div>` : ''}</td>
+      <td>${esc(store.projectName(a.project))}</td>
+      <td class="mono">${esc(a.version || '—')}</td>
+      <td>${(a.tags || '').split(',').filter(Boolean).map(t => `<span class="tag gray" style="margin:1px">${esc(t.trim())}</span>`).join('')}</td>
+      <td>${esc(store.memberName(a.owner))}</td>
+      <td class="mono">${a.date?.slice(5) || ''}</td>
+      <td><button class="btn sm" data-edit="${a.id}">수정</button></td>
+    </tr>`).join('') || `<tr><td colspan="7"><div class="empty">등록된 최종 파일이 없어요</div></td></tr>`;
+}
+
+export function renderArchive(main) {
   main.innerHTML = `
   <div class="page-head"><span class="eyebrow">Final Files</span>
     <h1>파일 아카이브</h1><p>최종 파일은 드라이브/NAS에 두고, 여기엔 링크와 맥락을 남겨요. "어디 있지?"를 없애는 목록입니다.</p></div>
@@ -22,23 +35,14 @@ export function renderArchive(main) {
   <div class="card"><div class="card-b" style="padding:0 6px">
     <table class="arc-table"><thead><tr>
       <th style="width:34%">파일</th><th>프로젝트</th><th>버전</th><th>태그</th><th>담당</th><th>날짜</th><th></th>
-    </tr></thead><tbody>
-    ${list.map(a => `<tr>
-      <td><a class="flink" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a>
-        ${a.notes ? `<div class="muted" style="font-size:11px;margin-top:2px">${esc(a.notes)}</div>` : ''}</td>
-      <td>${esc(store.projectName(a.project))}</td>
-      <td class="mono">${esc(a.version || '—')}</td>
-      <td>${(a.tags || '').split(',').filter(Boolean).map(t => `<span class="tag gray" style="margin:1px">${esc(t.trim())}</span>`).join('')}</td>
-      <td>${esc(store.memberName(a.owner))}</td>
-      <td class="mono">${a.date?.slice(5) || ''}</td>
-      <td><button class="btn sm" data-edit="${a.id}">수정</button></td>
-    </tr>`).join('') || `<tr><td colspan="7"><div class="empty">등록된 최종 파일이 없어요</div></td></tr>`}
-    </tbody></table>
+    </tr></thead><tbody id="arc-body">${filteredRows()}</tbody></table>
   </div></div>`;
 
   $('#arc-add').onclick = () => editItem(null, main);
-  $('#arc-q').oninput = e => { q = e.target.value; renderArchive(main); $('#arc-q').focus(); $('#arc-q').setSelectionRange(q.length, q.length); };
-  main.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editItem(b.dataset.edit, main));
+  const bindEdit = () => main.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editItem(b.dataset.edit, main));
+  // 입력창을 다시 그리지 않고 목록(tbody)만 갱신 → 한글 조합이 깨지지 않아요
+  $('#arc-q').oninput = e => { q = e.target.value; $('#arc-body').innerHTML = filteredRows(); bindEdit(); };
+  bindEdit();
 }
 
 function editItem(id, main) {

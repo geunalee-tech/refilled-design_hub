@@ -11,7 +11,7 @@ const taskRow = t => `
         <span>${esc(store.projectName(t.project))}</span>
         <span>${esc(store.assigneeNames(t))}</span>
         ${t.due ? `<span class="mono">${dday(t.due)}</span>` : ''}
-        ${t.kind === 'request' ? `<span class="tag blue">${esc(t.requester || '타팀')}</span>` : ''}
+        ${t.kind === 'request' ? `<span class="tag blue">${esc(t.requester || '요청')}</span>` : ''}
       </div>
     </div>
   </div>`;
@@ -46,7 +46,7 @@ export function renderDashboard(main) {
   const ganttRows = db.projects.map(p => {
     const cnt = open.filter(t => t.project === p.id).length;
     const l = pct(p.start), r = pct(p.end);
-    return `<div class="g-row">
+    return `<div class="g-row g-link" onclick="location.hash='#/tasks/projects'" title="클릭하면 타임라인 편집으로 이동">
       <div class="g-name">${esc(p.name)}<span>${esc(store.memberName(p.owner))} · 진행 ${cnt}건</span></div>
       <div class="g-track">
         <div class="g-bar" style="left:${l}%;width:${Math.max(2, r - l)}%;background:${p.color || 'var(--accent)'}"></div>
@@ -73,7 +73,7 @@ export function renderDashboard(main) {
     </div>
     <div class="d-stats">
       <div class="d-stat"><b>${todayTasks.length}</b><span>오늘 할 일</span></div>
-      <div class="d-stat"><b>${requests.length}</b><span>타팀 요청</span></div>
+      <div class="d-stat"><b>${requests.length}</b><span>요청 업무</span></div>
       <div class="d-stat ${confirm.length ? 'warn' : ''}"><b>${confirm.length}</b><span>컨펌중</span></div>
       <div class="d-stat ${overdue.length ? 'warn' : ''}"><b>${overdue.length}</b><span>기한 초과</span></div>
     </div>
