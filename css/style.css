@@ -325,3 +325,7 @@ a{color:inherit;text-decoration:none}
 .due-load b{font-weight:700}
 
 .app-ver{font-size:9.5px;color:#5A5A5A;padding:4px 14px 10px;font-variant-numeric:tabular-nums}
+/* 첨부 다운로드 버튼 */
+.att-btns{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.att-dl{border:1px solid var(--line);background:#fff;border-radius:6px;color:var(--muted);font-size:10.5px;padding:3px 8px;cursor:pointer;white-space:nowrap}
+.att-dl:hover{color:var(--accent);border-color:var(--accent)}

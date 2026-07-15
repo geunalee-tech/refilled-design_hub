@@ -157,7 +157,26 @@ class Store {
     });
     if (!res.ok) throw new Error('업로드 실패 ' + res.status);
     const json = await res.json();
-    return { name: fileName, url: json.content.download_url };
+    return { name: fileName, url: json.content.download_url, path };
+  }
+
+  /* ── 첨부 파일 직접 다운로드 (GitHub API로 받아 blob 저장) ── */
+  async downloadAttachment(f) {
+    try {
+      if (f.path && this.hasRemote()) {
+        const url = `https://api.github.com/repos/${this.settings.repo}/contents/${f.path.split('/').map(encodeURIComponent).join('/')}?ref=${this.settings.branch || 'main'}`;
+        const res = await fetch(url, { headers: { ...this.ghHeaders(), Accept: 'application/vnd.github.raw' } });
+        if (!res.ok) throw new Error(res.status);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = f.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        return true;
+      }
+    } catch { /* API 실패 시 원본 URL로 폴백 */ }
+    window.open(f.url, '_blank');
+    return true;
   }
 
   /* ── Slack 알림 (Incoming Webhook) ── */
@@ -182,19 +201,27 @@ class Store {
   notifyNewRequest(t) {
     const hook = this.slackWebhook;
     if (!hook) return;
-    const appUrl = location.origin + location.pathname;
+    const appUrl = location.origin + location.pathname + '#/tasks/requests';
     const proj = this.projectName(t.project);
-    const lines = [
-      `:inbox_tray: *새 요청 업무가 등록됐어요*`,
-      `*업무:* ${t.title}`,
-      `*프로젝트:* ${proj}`,
-      `*요청일:* ${t.requestedAt || '-'}   *마감일:* ${t.due || '미정'}`,
-      `*요청자:* ${t.requester || '미기재'}   *담당:* ${this.assigneeNames(t)}`,
-      t.link ? `*작업 링크:* ${t.link}` : '',
-      t.notes ? `*메모:* ${t.notes}` : '',
-      `<${appUrl}#/tasks/requests|→ 업무 보드에서 확인>`
-    ].filter(Boolean);
-    this.notifySlack(lines.join('\n')).catch(() => {});
+    const blocks = [
+      { type: 'section', text: { type: 'mrkdwn', text: ':inbox_tray: 새 요청 업무가 등록됐어요' } },
+      { type: 'header', text: { type: 'plain_text', text: t.title.slice(0, 148), emoji: true } },
+      { type: 'section', fields: [
+        { type: 'mrkdwn', text: `*프로젝트:*\n${proj}` },
+        { type: 'mrkdwn', text: `*요청자:*\n${t.requester || '미기재'}` },
+        { type: 'mrkdwn', text: `*요청일:*\n${t.requestedAt || '-'}` },
+        { type: 'mrkdwn', text: `*마감일:*\n${t.due || '미정'}` },
+        { type: 'mrkdwn', text: `*담당:*\n${this.assigneeNames(t)}` },
+        { type: 'mrkdwn', text: `*우선순위:*\n${t.priority || '중간'}` },
+      ]},
+      ...(t.notes ? [{ type: 'section', text: { type: 'mrkdwn', text: `*메모:* ${t.notes.slice(0, 500)}` } }] : []),
+      { type: 'actions', elements: [
+        ...(t.link ? [{ type: 'button', text: { type: 'plain_text', text: '🔗 작업 링크 바로가기', emoji: true }, url: t.link }] : []),
+        { type: 'button', text: { type: 'plain_text', text: '업무 보드에서 확인', emoji: true }, url: appUrl }
+      ]}
+    ];
+    const fallback = `📥 새 요청 업무: ${t.title} (${t.requester || '요청'} · 마감 ${t.due || '미정'})`;
+    this.notifySlack(fallback, blocks).catch(() => {});
   }
 
   seedIfEmpty() {

@@ -106,8 +106,9 @@ function card(t) {
       <span class="muted" style="font-size:10.5px">${esc(store.assigneeNames(t))}</span>
       ${t.due ? `<span class="due ${over ? 'over' : ''}">${t.due.slice(5)} · ${dday(t.due)}</span>` : ''}
       ${t.kind === 'request' ? `<span class="tag blue">${esc(t.requester || '요청')}</span>` : ''}
+      ${t.notionId ? `<span class="tag gray" title="노션에서 자동 등록">N</span>` : ''}
       ${t.files?.length ? `<span class="muted" style="font-size:10px">📎${t.files.length}</span>` : ''}
-      ${t.link ? `<span class="muted" style="font-size:10px">🔗</span>` : ''}
+      ${t.link ? `<a href="${esc(t.link)}" target="_blank" rel="noopener" title="작업 링크 열기" style="font-size:10px">🔗</a>` : ''}
     </div>
     <div class="mv">${moves.join('')}</div>
   </div>`;
@@ -199,7 +200,10 @@ export function editTask(id, isRequest = false, preset = {}) {
   const fileRows = () => files.map((f, i) => `
     <div class="att-item">
       <a href="${esc(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>
-      <button class="att-del" data-fi="${i}" title="삭제">✕</button>
+      <span class="att-btns">
+        <button class="att-dl" data-di="${i}" title="다운로드">⬇ 다운로드</button>
+        <button class="att-del" data-fi="${i}" title="삭제">✕</button>
+      </span>
     </div>`).join('') || '<div class="empty" style="padding:6px 2px">첨부 없음 (최대 5개)</div>';
 
   openModal(`
@@ -219,7 +223,7 @@ export function editTask(id, isRequest = false, preset = {}) {
       </select>
       <input id="t-newproj" placeholder="새 프로젝트 이름" style="display:none;margin-top:6px">
     </div>
-    <div class="field"><label>담당자 (복수 선택)</label>
+    <div class="field"><label>담당자 <span class="muted" style="font-weight:400">(선택 안 해도 돼요 — 팀장이 배분합니다)</span></label>
       <div class="chk-group">${db.members.map(m => `
         <label class="chk"><input type="checkbox" value="${m.id}" ${(t.assignees || []).includes(m.id) ? 'checked' : ''}>${esc(m.name)}</label>`).join('')}
       </div>
@@ -233,7 +237,11 @@ export function editTask(id, isRequest = false, preset = {}) {
     </div>
     <div class="guard-box" id="t-guard" hidden></div>
     <div class="field" id="f-requester"><label>요청자</label><input id="t-requester" value="${esc(t.requester || '')}" placeholder="예: 마케팅팀 이지수"></div>
-    <div class="field"><label>링크 (피그마·노션·드라이브 등)</label><input id="t-link" value="${esc(t.link || '')}" placeholder="https://"></div>
+    <div class="field"><label>링크 (피그마·노션·드라이브 등)</label>
+      <div style="display:flex;gap:6px">
+        <input id="t-link" value="${esc(t.link || '')}" placeholder="https://" style="flex:1">
+        <button class="btn sm" id="t-linkopen" ${t.link ? '' : 'disabled'}>열기 ↗</button>
+      </div></div>
     <div class="field"><label>파일 첨부 <span class="muted" style="font-weight:400">(최대 5개 · 개당 8MB)</span></label>
       <div id="att-list">${fileRows()}</div>
       <div style="display:flex;gap:6px;margin-top:6px">
@@ -251,6 +259,10 @@ export function editTask(id, isRequest = false, preset = {}) {
     </div>
   `, body => {
     const q = s => body.querySelector(s);
+
+    // 링크 열기 버튼
+    q('#t-linkopen').onclick = () => { const u = q('#t-link').value.trim(); if (u) window.open(u, '_blank'); };
+    q('#t-link').oninput = () => { q('#t-linkopen').disabled = !q('#t-link').value.trim(); };
 
     // 구분에 따라 요청자 필드 강조
     const syncKind = () => { q('#f-requester').style.display = q('#t-kind').value === 'request' ? '' : 'none'; };
@@ -273,7 +285,14 @@ export function editTask(id, isRequest = false, preset = {}) {
 
     // 첨부: 파일 업로드 (GitHub 저장소 files/ 커밋)
     const redraw = () => { q('#att-list').innerHTML = fileRows(); bindDel(); };
-    const bindDel = () => body.querySelectorAll('.att-del').forEach(b => b.onclick = () => { files.splice(+b.dataset.fi, 1); redraw(); });
+    const bindDel = () => {
+      body.querySelectorAll('.att-del').forEach(b => b.onclick = () => { files.splice(+b.dataset.fi, 1); redraw(); });
+      body.querySelectorAll('.att-dl').forEach(b => b.onclick = async () => {
+        b.textContent = '⬇ 받는 중…';
+        await store.downloadAttachment(files[+b.dataset.di]);
+        b.textContent = '⬇ 다운로드';
+      });
+    };
     bindDel();
     q('#att-file').onclick = () => {
       if (!store.hasRemote()) return toast('파일 업로드는 GitHub 연결 후 가능해요 (설정). 링크로 추가는 바로 가능해요.', true);
@@ -324,7 +343,6 @@ export function editTask(id, isRequest = false, preset = {}) {
         files, notes: v('#t-notes')
       };
       if (!data.title) return toast('업무 제목을 입력해주세요', true);
-      if (!assignees.length) return toast('담당자를 1명 이상 선택해주세요', true);
 
       /* ── 요청 업무 가드레일 (신규 등록 시) ── */
       if (!id && data.kind === 'request') {
