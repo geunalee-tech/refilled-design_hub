@@ -81,6 +81,23 @@
         }
       ],
       "notes": "8월 프로모션 배너/썸네일/상세페이지 업무 요청드립니다."
+    },
+    {
+      "id": "nt_39ebd60b5762",
+      "notionId": "39ebd60b-5762-80a4-b912-dcd57386162e",
+      "kind": "request",
+      "title": "작업 테스트 요청서",
+      "project": "",
+      "assignees": [],
+      "status": "req",
+      "priority": "중간",
+      "requester": "노션 요청",
+      "requestedAt": "2026-07-16",
+      "due": "2026-07-21",
+      "link": "https://app.notion.com/p/39ebd60b576280a4b912dcd57386162e",
+      "files": [],
+      "notes": "노션 요청 DB에서 자동 등록",
+      "createdAt": "2026-07-15T15:02:42.630Z"
     }
   ],
   "projects": [
@@ -181,6 +198,6 @@
       "leadDays": 1
     }
   ],
-  "updatedAt": "2026-07-15T14:51:58.821Z",
+  "updatedAt": "2026-07-15T15:02:42.825Z",
   "seeded": true
 }
