@@ -1,6 +1,6 @@
 /* timeline.js — 프로젝트 타임라인 (드래그로 일정 조정 + 하위 업무 관리) */
 import { store, uid, todayISO } from '../store.js';
-import { esc, toast, dday, STATUS, $ } from '../ui.js';
+import { esc, toast, dday, STATUS, openModal, closeModal, $ } from '../ui.js';
 import { editTask, subTabs } from './tasks.js';
 
 const DAYS = 42; // 6주 창
@@ -36,11 +36,11 @@ export function renderTimeline(main) {
         <div class="tl-tname">
           <span class="tk-dot ${t.status}"></span>
           <span class="tt" title="${esc(t.title)}">${esc(t.title)}</span>
-          <span class="ta">${esc(store.assigneeNames(t))}</span>
+          <span class="ta">${t.due ? `<b class="td ${t.due < today && t.status !== 'done' ? 'over' : ''}">${t.due.slice(5).replace('-', '/')} · ${dday(t.due)}</b>` : ''} ${esc(store.assigneeNames(t))}</span>
           <button class="tl-x" data-deltask="${t.id}" title="업무 삭제">✕</button>
         </div>
         <div class="g-track tl-ttrack">
-          ${t.due ? `<div class="g-due" data-drag="due" data-tid="${t.id}" style="left:calc(${pctL(t.due)}% - 7px)" title="${t.due} · 드래그로 마감일 조정"></div>` : '<span class="tl-nodue">마감일 없음</span>'}
+          ${t.due ? `<div class="g-due" data-drag="due" data-tid="${t.id}" style="left:calc(${pctL(t.due)}% - 7px)" title="${t.due} · 드래그로 마감일 조정"></div><span class="g-due-lb" style="left:calc(${pctL(t.due)}% + 11px)">${t.due.slice(5).replace('-', '/')}</span>` : '<span class="tl-nodue">마감일 없음</span>'}
           <div class="g-today" style="left:${pctL(today)}%"></div>
         </div>
       </div>`).join('') +
@@ -54,7 +54,7 @@ export function renderTimeline(main) {
         <div class="tl-pname">
           <button class="tl-toggle ${isOpen ? 'open' : ''}" data-toggle="${p.id}">▸</button>
           <span class="pn" title="${esc(p.name)}">${esc(p.name)}</span>
-          <span class="pm">${esc(store.memberName(p.owner))} · ${tasks.length}건</span>
+          <span class="pm">${(p.start || '').slice(5).replace('-', '/')} ~ ${(p.end || '').slice(5).replace('-', '/')} · ${esc(store.memberName(p.owner))} · ${tasks.length}건</span>
           <button class="tl-x" data-delproj="${p.id}" title="프로젝트 삭제">✕</button>
         </div>
         <div class="g-track tl-ptrack">
@@ -172,19 +172,85 @@ function bindDrag(main) {
   });
 }
 
-/* ── 프로젝트 빠른 추가 ── */
+/* ── 프로젝트 성격별 템플릿 (기존 구글시트 운영 패턴 기반) ── */
+const TEMPLATES = {
+  detail: { label: '상세페이지 (신규·리뉴얼)', dur: 42, steps: [
+    ['방향성 기획', 5], ['기획 전달·자료 취합', 8], ['1차 디자인', 16],
+    ['2차 디자인', 26], ['최종 컨펌', 34], ['최종 발주·업로드', 40]] },
+  banner: { label: '배너·프로모션 (기획전·자사몰)', dur: 14, steps: [
+    ['기획 전달 확인', 1], ['1차 디자인', 5], ['2차 디자인', 9], ['최종·사이즈 파생', 12]] },
+  pkg: { label: '패키지 (용기·단상자·리플렛)', dur: 56, steps: [
+    ['문안·칼선 수령', 3], ['1차 디자인', 12], ['1차 문안 검수', 18], ['2차 디자인', 26],
+    ['수정 문안 반영', 32], ['용기·단상자 최종', 40], ['샘플링 파일 전달', 45],
+    ['인쇄 감리', 50], ['최종 발주파일', 54]] },
+  content: { label: '제품 콘텐츠 (누끼컷·썸네일)', dur: 21, steps: [
+    ['촬영본·누끼컷 수령', 3], ['썸네일 1차', 8], ['보정·2차', 14], ['최종 발주파일', 19]] },
+  gwp: { label: '기획세트·GWP (제휴몰·올영)', dur: 42, steps: [
+    ['용기·구성품 1차', 7], ['용기 최종', 16], ['문안 검수용 전달', 22],
+    ['샘플링 파일 전달', 28], ['IP·채널 검수', 34], ['최종 발주·수정 반영', 40]] },
+  shoot: { label: '촬영 프로젝트', dur: 21, steps: [
+    ['촬영용 제품 수령', 3], ['촬영 (제품·연출)', 8], ['셀렉', 12],
+    ['보정컷 수령·확인', 17], ['최종 아카이빙', 20]] },
+  blank: { label: '빈 프로젝트 (직접 구성)', dur: 21, steps: [] },
+};
+const PALETTE = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
+
 function addProject(main) {
-  const name = prompt('새 프로젝트 이름을 입력해주세요');
-  if (!name) return;
-  const PALETTE = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
-  const p = {
-    id: uid(), name: name.trim(),
-    color: PALETTE[store.db.projects.length % PALETTE.length],
-    start: todayISO(), end: todayISO(21),
-    owner: store.db.members.find(m => m.name === store.settings.userName)?.id || store.db.members[0]?.id || null
-  };
-  store.db.projects.push(p);
-  expanded.add(p.id);
-  store.save(); renderTimeline(main);
-  toast('프로젝트를 추가했어요. 바를 드래그해 기간을 잡아주세요.');
+  const db = store.db;
+  const stepRows = key => TEMPLATES[key].steps.map(([name, off], i) => `
+    <label class="tpl-step"><input type="checkbox" checked data-step="${i}">
+      <span>${esc(name)}</span><b>D+${off}</b></label>`).join('')
+    || '<div class="empty" style="padding:8px 2px">하위 업무 없이 시작해요. 타임라인에서 직접 추가할 수 있어요.</div>';
+
+  openModal(`
+    <h2>프로젝트 추가</h2>
+    <div class="field"><label>프로젝트 이름</label><input id="np-name" placeholder="예: [신규] 클렌저 패키지"></div>
+    <div class="frow">
+      <div class="field"><label>프로젝트 성격</label><select id="np-type">
+        ${Object.entries(TEMPLATES).map(([k, t]) => `<option value="${k}">${t.label}</option>`).join('')}</select></div>
+      <div class="field"><label>담당자 (오너)</label><select id="np-owner">
+        ${db.members.map(m => `<option value="${m.id}" ${m.name === store.settings.userName ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>시작일</label><input type="date" id="np-start" value="${todayISO()}"></div>
+      <div class="field"><label>예상 기간</label><input id="np-dur" type="number" min="3" max="180" value="${TEMPLATES.detail.dur}"> <span class="muted" style="font-size:11px">일</span></div>
+    </div>
+    <div class="field"><label>자동 생성할 하위 업무 <span class="muted" style="font-weight:400">(체크 해제 = 제외 · D+n은 시작일 기준)</span></label>
+      <div id="np-steps">${stepRows('detail')}</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" data-close>취소</button>
+      <button class="btn primary" id="np-save">프로젝트 생성</button>
+    </div>
+  `, body => {
+    const q = s => body.querySelector(s);
+    q('#np-type').onchange = e => {
+      q('#np-steps').innerHTML = stepRows(e.target.value);
+      q('#np-dur').value = TEMPLATES[e.target.value].dur;
+    };
+    q('#np-save').onclick = () => {
+      const name = q('#np-name').value.trim();
+      if (!name) return toast('프로젝트 이름을 입력해주세요', true);
+      const tpl = TEMPLATES[q('#np-type').value];
+      const start = q('#np-start').value || todayISO();
+      const dur = Math.max(3, +q('#np-dur').value || tpl.dur);
+      const owner = q('#np-owner').value || null;
+      const p = { id: uid(), name, color: PALETTE[db.projects.length % PALETTE.length],
+                  start, end: addDays(start, dur), owner };
+      db.projects.push(p);
+      const checked = [...body.querySelectorAll('[data-step]:checked')].map(c => +c.dataset.step);
+      tpl.steps.forEach(([tname, off], i) => {
+        if (!checked.includes(i)) return;
+        db.tasks.push({
+          id: uid(), kind: 'project', title: `${name} — ${tname}`, project: p.id,
+          assignees: owner ? [owner] : [], status: 'req', priority: '중간',
+          requester: '', requestedAt: todayISO(), due: addDays(start, Math.min(off, dur)),
+          link: '', files: [], notes: '', createdAt: new Date().toISOString()
+        });
+      });
+      expanded.add(p.id);
+      store.save(); closeModal(); renderTimeline(main);
+      toast(`"${name}" 생성 — 하위 업무 ${checked.length}건이 일정에 배치됐어요`);
+    };
+  });
 }
