@@ -176,7 +176,7 @@ function bindDrag(main) {
 function addProject(main) {
   const name = prompt('새 프로젝트 이름을 입력해주세요');
   if (!name) return;
-  const PALETTE = ['#0F7B5F', '#3A6EA5', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
+  const PALETTE = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
   const p = {
     id: uid(), name: name.trim(),
     color: PALETTE[store.db.projects.length % PALETTE.length],

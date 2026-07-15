@@ -6,7 +6,7 @@ import { renderTimeline } from './timeline.js';
 const ORDER = ['req', 'doing', 'confirm'];
 const NEXT = { req: 'doing', doing: 'confirm', confirm: 'done' };
 const NEXT_LABEL = { req: '진행 →', doing: '컨펌 요청 →', confirm: '완료 ✓' };
-const PALETTE = ['#0F7B5F', '#3A6EA5', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
+const PALETTE = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
 
 let filter = { kind: '', assignee: '', project: '' };
 let doneQ = { q: '', assignee: '', month: '' };

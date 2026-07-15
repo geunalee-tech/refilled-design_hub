@@ -168,8 +168,8 @@ class Store {
       { id: 'm-minhyun', name: '민현', role: '인턴 · 해외 채널' },
     ];
     const p = [
-      { id: 'p-detail', name: '상세페이지 리뉴얼', color: '#0F7B5F', start: t(-10), end: t(14), owner: 'm-yeonwoo' },
-      { id: 'p-exo', name: 'cADPR Exo 캠페인', color: '#3A6EA5', start: t(-3), end: t(25), owner: 'm-guena' },
+      { id: 'p-detail', name: '상세페이지 리뉴얼', color: '#006DE2', start: t(-10), end: t(14), owner: 'm-yeonwoo' },
+      { id: 'p-exo', name: 'cADPR Exo 캠페인', color: '#0F7B5F', start: t(-3), end: t(25), owner: 'm-guena' },
       { id: 'p-global', name: '해외 채널 비주얼', color: '#B7791F', start: t(0), end: t(30), owner: 'm-minhyun' },
       { id: 'p-ops', name: '팀 운영 · AI 워크플로', color: '#6B5CA5', start: t(-20), end: t(40), owner: 'm-eunseo' },
     ];
