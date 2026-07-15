@@ -26,14 +26,6 @@
       "owner": "m-minhyun"
     },
     {
-      "id": "p-ops",
-      "name": "팀 운영 · AI 워크플로",
-      "color": "#7A5FA0",
-      "start": "2026-06-25",
-      "end": "2026-08-24",
-      "owner": "m-eunseo"
-    },
-    {
       "id": "mrlsciyn3vyzc",
       "name": "OY 아이래쉬 온고잉 기획세트",
       "color": "#8A3B5E",
@@ -62,6 +54,6 @@
   "rituals": [],
   "archive": [],
   "trends": [],
-  "updatedAt": "2026-07-15T13:30:32.752Z",
+  "updatedAt": "2026-07-15T13:30:43.285Z",
   "seeded": true
 }
