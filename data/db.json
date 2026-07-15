@@ -1,1 +1,30 @@
-{"tasks":[],"projects":[],"members":[],"docs":[],"archive":[],"trends":[],"meta":{"note":"앱이 첫 push 시 자동으로 채웁니다"}}
+{
+  "tasks": [
+    {
+      "id": "nt_39ebd60b5762",
+      "notionId": "39ebd60b-5762-8063-ab1e-f61fd300133f",
+      "kind": "request",
+      "title": "진짜찐찐찐마지막",
+      "project": "",
+      "assignees": [],
+      "status": "req",
+      "priority": "🚨긴급",
+      "requester": "이근아",
+      "requestedAt": "2026-07-16",
+      "due": "2026-07-22",
+      "link": "https://app.notion.com/p/39ebd60b57628063ab1ef61fd300133f",
+      "files": [],
+      "notes": "노션 요청 DB에서 자동 등록",
+      "createdAt": "2026-07-15T15:38:09.551Z"
+    }
+  ],
+  "projects": [],
+  "members": [],
+  "docs": [],
+  "archive": [],
+  "trends": [],
+  "meta": {
+    "note": "앱이 첫 push 시 자동으로 채웁니다"
+  },
+  "updatedAt": "2026-07-15T15:38:09.796Z"
+}
