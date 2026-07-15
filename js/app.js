@@ -20,10 +20,11 @@ const routes = {
 };
 
 function route() {
-  const key = (location.hash || '#/dashboard').replace('#/', '').split('?')[0];
+  const parts = (location.hash || '#/dashboard').replace('#/', '').split('?')[0].split('/');
+  const key = parts[0];
   const render = routes[key] || renderDashboard;
   $$('#nav a, .settings-link').forEach(a => a.classList.toggle('active', a.dataset.route === key));
-  render($('#main'));
+  render($('#main'), parts.slice(1).join('/'));
 }
 
 function syncBadge() {

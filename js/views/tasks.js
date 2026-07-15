@@ -1,6 +1,7 @@
 /* tasks.js — 업무 보드 (요청 → 진행 중 → 컨펌중 → 완료 아카이브) */
 import { store, uid, todayISO } from '../store.js';
 import { esc, openModal, closeModal, toast, dday, fmtDate, STATUS, PRIORITY, $ } from '../ui.js';
+import { renderTimeline } from './timeline.js';
 
 const ORDER = ['req', 'doing', 'confirm'];
 const NEXT = { req: 'doing', doing: 'confirm', confirm: 'done' };
@@ -11,10 +12,19 @@ let filter = { kind: '', assignee: '', project: '' };
 let doneQ = { q: '', assignee: '', month: '' };
 let doneOpen = false;
 
-export function renderTasks(main) {
+export const subTabs = active => `
+  <div class="subtabs">
+    <a href="#/tasks" class="${active === '' ? 'on' : ''}">통합 보드</a>
+    <a href="#/tasks/requests" class="${active === 'requests' ? 'on' : ''}">타팀 요청</a>
+    <a href="#/tasks/projects" class="${active === 'projects' ? 'on' : ''}">프로젝트 타임라인</a>
+  </div>`;
+
+export function renderTasks(main, sub = '') {
+  if (sub === 'projects') return renderTimeline(main);
   const db = store.db;
+  const forceKind = sub === 'requests' ? 'request' : '';
   const match = t =>
-    (!filter.kind || t.kind === filter.kind) &&
+    (!(forceKind || filter.kind) || t.kind === (forceKind || filter.kind)) &&
     (!filter.assignee || (t.assignees || []).includes(filter.assignee)) &&
     (!filter.project || t.project === filter.project);
   const tasks = db.tasks.filter(match);
@@ -30,13 +40,14 @@ export function renderTasks(main) {
 
   main.innerHTML = `
   <div class="page-head"><span class="eyebrow">Task Stream</span>
-    <h1>업무 보드</h1><p>타팀 요청과 프로젝트 업무를 한 흐름에서 관리해요. 요청 → 진행 중 → 컨펌중 → 완료.</p></div>
+    <h1>업무 보드</h1><p>${sub === 'requests' ? '타팀에서 인입된 단건 요청만 모아 봐요.' : '타팀 요청과 프로젝트 업무를 한 흐름에서 관리해요. 요청 → 진행 중 → 컨펌중 → 완료.'}</p></div>
+  ${subTabs(sub)}
   <div class="board-bar">
     <button class="btn primary" id="new-task">+ 업무 추가</button>
-    <div class="kind-chips">
+    ${sub === 'requests' ? '' : `<div class="kind-chips">
       ${[['', '전체'], ['request', '타팀 요청'], ['project', '프로젝트']].map(([v, l]) =>
         `<button class="chip ${filter.kind === v ? 'on' : ''}" data-kind="${v}">${l}</button>`).join('')}
-    </div>
+    </div>`}
     <select id="f-assignee"><option value="">담당자 전체</option>
       ${db.members.map(m => `<option value="${m.id}" ${filter.assignee === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>
     <select id="f-project"><option value="">프로젝트 전체</option>
@@ -47,10 +58,10 @@ export function renderTasks(main) {
   <div class="kanban k3">${cols}</div>
   ${doneSection(tasks)}`;
 
-  $('#new-task').onclick = () => editTask(null);
-  main.querySelectorAll('[data-kind]').forEach(b => b.onclick = () => { filter.kind = b.dataset.kind; renderTasks(main); });
-  $('#f-assignee').onchange = e => { filter.assignee = e.target.value; renderTasks(main); };
-  $('#f-project').onchange = e => { filter.project = e.target.value; renderTasks(main); };
+  $('#new-task').onclick = () => editTask(null, sub === 'requests');
+  main.querySelectorAll('[data-kind]').forEach(b => b.onclick = () => { filter.kind = b.dataset.kind; renderTasks(main, sub); });
+  $('#f-assignee').onchange = e => { filter.assignee = e.target.value; renderTasks(main, sub); };
+  $('#f-project').onchange = e => { filter.project = e.target.value; renderTasks(main, sub); };
   $('#mng-project').onclick = manageProjects;
 
   main.querySelectorAll('[data-task]').forEach(el => {
@@ -59,14 +70,14 @@ export function renderTasks(main) {
         const t = store.db.tasks.find(x => x.id === el.dataset.task);
         t.status = e.target.dataset.move;
         if (t.status === 'done') t.doneAt = todayISO(); else delete t.doneAt;
-        store.save(); renderTasks(main);
+        store.save(); renderTasks(main, sub);
       } else if (e.target.matches('a')) {
         /* 링크는 그대로 통과 */
       } else editTask(el.dataset.task);
     };
   });
 
-  bindDoneSection(main);
+  bindDoneSection(main, sub);
 }
 
 function card(t) {
@@ -119,10 +130,10 @@ function doneSection(tasks) {
   </details>`;
 }
 
-function bindDoneSection(main) {
+function bindDoneSection(main, sub = '') {
   const sec = $('#done-sec'); if (!sec) return;
   sec.querySelector('summary').addEventListener('click', () => { doneOpen = !sec.open; });
-  const re = () => { doneOpen = true; renderTasks(main); };
+  const re = () => { doneOpen = true; renderTasks(main, sub); };
   $('#dq-text').oninput = e => { doneQ.q = e.target.value; re(); $('#dq-text').focus(); $('#dq-text').setSelectionRange(doneQ.q.length, doneQ.q.length); };
   $('#dq-assignee').onchange = e => { doneQ.assignee = e.target.value; re(); };
   $('#dq-month').onchange = e => { doneQ.month = e.target.value; re(); };
@@ -130,7 +141,7 @@ function bindDoneSection(main) {
     e.stopPropagation();
     const t = store.db.tasks.find(x => x.id === b.dataset.reopen);
     t.status = 'doing'; delete t.doneAt; store.save();
-    doneOpen = true; renderTasks(main); toast('진행 중으로 되돌렸어요');
+    doneOpen = true; renderTasks(main, sub); toast('진행 중으로 되돌렸어요');
   });
   main.querySelectorAll('[data-done]').forEach(tr => tr.onclick = e => {
     if (e.target.matches('button')) return;
@@ -142,8 +153,8 @@ function bindDoneSection(main) {
 export function editTask(id, isRequest = false, preset = {}) {
   const db = store.db;
   const t = id ? db.tasks.find(x => x.id === id) : {
-    kind: isRequest ? 'request' : 'project',
-    title: preset.title || '', project: db.projects[0]?.id || '',
+    kind: preset.kind || (isRequest ? 'request' : 'project'),
+    title: preset.title || '', project: preset.project || db.projects[0]?.id || '',
     assignees: [], status: 'req', priority: '중간',
     requester: '', requestedAt: todayISO(), due: '', link: '', files: [],
     notes: preset.notes || ''
@@ -308,6 +319,8 @@ function manageProjects() {
     };
     const bindDel = b => b.querySelectorAll('.p-del').forEach(btn => btn.onclick = e => {
       const pid = e.target.closest('[data-pid]').dataset.pid;
+      const cnt = db.tasks.filter(t => t.project === pid).length;
+      if (!confirm(`이 프로젝트를 삭제할까요?${cnt ? `\n연결된 업무 ${cnt}건은 '기타'로 남아요.` : ''}`)) return;
       db.projects = db.projects.filter(p => p.id !== pid);
       b.querySelector('#p-rows').innerHTML = rows(); bindDel(b);
     });
