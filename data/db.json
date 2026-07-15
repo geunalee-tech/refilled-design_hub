@@ -68,7 +68,7 @@
       "assignees": [
         "mrlq66cmegw7h"
       ],
-      "status": "doing",
+      "status": "req",
       "priority": "중간",
       "requestedAt": "2026-07-15",
       "due": "2026-07-29",
@@ -181,6 +181,6 @@
       "leadDays": 1
     }
   ],
-  "updatedAt": "2026-07-15T14:09:07.055Z",
+  "updatedAt": "2026-07-15T14:09:08.360Z",
   "seeded": true
 }
