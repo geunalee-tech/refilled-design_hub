@@ -216,11 +216,15 @@ export function editTask(id, isRequest = false, preset = {}) {
         ${PRIORITY.map(p => `<option ${t.priority === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
     </div>
     <div class="field"><label>업무 제목</label><input id="t-title" value="${esc(t.title)}" placeholder="예: 7월 기획전 메인 배너"></div>
-    <div class="field"><label>프로젝트</label>
-      <select id="t-project">
-        ${db.projects.map(p => `<option value="${p.id}" ${t.project === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
-        <option value="__new">＋ 새 프로젝트 추가…</option>
-      </select>
+    <div class="field"><label>프로젝트 <span class="muted" style="font-weight:400">(추가·삭제 가능)</span></label>
+      <div style="display:flex;gap:6px">
+        <select id="t-project" style="flex:1">
+          <option value="">미지정</option>
+          ${db.projects.map(p => `<option value="${p.id}" ${t.project === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+          <option value="__new">＋ 새 프로젝트 추가…</option>
+        </select>
+        <button class="btn sm" id="t-projdel" title="선택한 프로젝트 삭제">🗑</button>
+      </div>
       <input id="t-newproj" placeholder="새 프로젝트 이름" style="display:none;margin-top:6px">
     </div>
     <div class="field"><label>담당자 <span class="muted" style="font-weight:400">(선택 안 해도 돼요 — 팀장이 배분합니다)</span></label>
@@ -282,6 +286,26 @@ export function editTask(id, isRequest = false, preset = {}) {
 
     // 새 프로젝트 인라인 추가
     q('#t-project').onchange = e => q('#t-newproj').style.display = e.target.value === '__new' ? '' : 'none';
+
+    // 프로젝트 삭제 (연결 업무는 미지정으로 남음)
+    const rebuildProjOptions = (selected = '') => {
+      q('#t-project').innerHTML = `<option value="">미지정</option>` +
+        db.projects.map(p => `<option value="${p.id}" ${selected === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('') +
+        `<option value="__new">＋ 새 프로젝트 추가…</option>`;
+      q('#t-newproj').style.display = 'none';
+    };
+    q('#t-projdel').onclick = () => {
+      const pid = q('#t-project').value;
+      if (!pid || pid === '__new') return toast('삭제할 프로젝트를 먼저 선택해주세요', true);
+      const p = db.projects.find(x => x.id === pid);
+      const cnt = db.tasks.filter(x => x.project === pid).length;
+      if (!confirm(`"${p.name}" 프로젝트를 삭제할까요?\n연결된 업무 ${cnt}건은 삭제되지 않고 '미지정'으로 남아요.`)) return;
+      db.projects = db.projects.filter(x => x.id !== pid);
+      db.tasks.forEach(x => { if (x.project === pid) x.project = ''; });
+      store.save();
+      rebuildProjOptions('');
+      toast(`"${p.name}" 프로젝트를 삭제했어요`);
+    };
 
     // 첨부: 파일 업로드 (GitHub 저장소 files/ 커밋)
     const redraw = () => { q('#att-list').innerHTML = fileRows(); bindDel(); };

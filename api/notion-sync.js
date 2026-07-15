@@ -85,11 +85,12 @@ function mapTask(page) {
   const designers = people(prop(props, '디자인 담당자', '담당자'));
   const planners = people(prop(props, '기획자'));
   const createdBy = page.created_by?.name || '';
-  const requester = (planners[0] || createdBy || '노션 요청') + (planners.length > 1 ? ` 외 ${planners.length - 1}` : '');
+  const plannerNames = planners.length ? planners : (createdBy ? [createdBy] : []);
+  const requester = (plannerNames[0] || '노션 요청') + (plannerNames.length > 1 ? ` 외 ${plannerNames.length - 1}` : '');
   return {
     id: 'nt_' + (page.id || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12),
     notionId: page.id || null,
-    kind: 'request', title, project: '', assignees: [], _designerNames: designers,
+    kind: 'request', title, project: '', assignees: [], _designerNames: designers, _plannerNames: plannerNames,
     status, priority: ['🚨긴급', '높음', '중간', '낮음', '보류'].includes(priority) ? priority : '중간',
     requester, requestedAt: reqAt, due, link: page.url || '',
     files: [], notes: '노션 요청 DB에서 자동 등록', createdAt: new Date().toISOString(),
@@ -119,17 +120,26 @@ async function ghPut(repo, branch, token, db, sha) {
 }
 
 /* ── 슬랙 알림 (허브와 동일한 Block Kit 포맷) ── */
-async function notifySlack(hook, t, boardUrl) {
+// SLACK_USER_MAP 환경변수(JSON: {"이름":"U0XXXXXXX"})에 등록된 사람은 진짜 @멘션, 없으면 이름 표기
+function mentionName(name, userMap) {
+  const id = userMap[name] || userMap[name?.replace(/\s/g, '')];
+  return id ? `<@${id}>` : name;
+}
+async function notifySlack(hook, t, boardUrl, userMap = {}) {
   if (!hook) return;
+  // 디자인팀-CT 사용자 그룹 멘션 (SLACK_TEAM_MENTION 환경변수로 교체 가능)
+  const teamMention = process.env.SLACK_TEAM_MENTION || '<!subteam^S06BYJ0KS5T|@디자인팀-ct>';
+  const requesterText = (t._plannerNames?.length
+    ? t._plannerNames.map(n => mentionName(n, userMap)).join(', ')
+    : t.requester) || '미기재';
   const blocks = [
-    { type: 'section', text: { type: 'mrkdwn', text: ':inbox_tray: 새 요청 업무가 등록됐어요 (노션 연동)' } },
+    { type: 'section', text: { type: 'mrkdwn', text: `:inbox_tray: 새 요청 업무가 등록됐어요 ${teamMention}` } },
     { type: 'header', text: { type: 'plain_text', text: t.title.slice(0, 148), emoji: true } },
     { type: 'section', fields: [
-      { type: 'mrkdwn', text: `*요청자:*\n${t.requester || '미기재'}` },
+      { type: 'mrkdwn', text: `*기획자·요청자:*\n${requesterText}` },
       { type: 'mrkdwn', text: `*우선순위:*\n${t.priority}` },
       { type: 'mrkdwn', text: `*요청일:*\n${t.requestedAt || '-'}` },
       { type: 'mrkdwn', text: `*마감일:*\n${t.due || '미정'}` },
-      { type: 'mrkdwn', text: `*디자인 담당:*\n${t._designerNames?.join(', ') || '미지정 (팀장 배분)'}` },
     ]},
     { type: 'actions', elements: [
       ...(t.link ? [{ type: 'button', text: { type: 'plain_text', text: '📄 노션 페이지 바로가기', emoji: true }, url: t.link }] : []),
@@ -143,7 +153,8 @@ async function notifySlack(hook, t, boardUrl) {
 }
 
 export default async function handler(req, res) {
-  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', SLACK_WEBHOOK, SYNC_SECRET, NOTION_TOKEN } = process.env;
+  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', SLACK_WEBHOOK, SYNC_SECRET, NOTION_TOKEN, SLACK_USER_MAP } = process.env;
+  let userMap = {}; try { userMap = JSON.parse(SLACK_USER_MAP || '{}'); } catch {}
   if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: '환경변수(GH_TOKEN/GH_REPO) 미설정' });
   if (!SYNC_SECRET || req.query.key !== SYNC_SECRET) return res.status(401).json({ error: 'key 불일치' });
   if (req.method !== 'POST') return res.status(200).json({ ok: true, hint: '노션 자동화 웹훅용 엔드포인트예요' });
@@ -190,7 +201,7 @@ export default async function handler(req, res) {
     }
 
     const boardUrl = `https://${req.headers.host}/#/tasks/requests`;
-    await notifySlack(SLACK_WEBHOOK, task, boardUrl).catch(() => {});
+    await notifySlack(SLACK_WEBHOOK, task, boardUrl, userMap).catch(() => {});
     return res.status(200).json({ ok: true, task: task.title });
   } catch (e) {
     return res.status(500).json({ error: String(e.message || e) });
