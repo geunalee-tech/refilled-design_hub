@@ -40,6 +40,24 @@
       "link": "",
       "files": [],
       "notes": ""
+    },
+    {
+      "id": "mrm5is1n9aqll",
+      "createdAt": "2026-07-15T14:04:23.291Z",
+      "kind": "request",
+      "title": "테스트트",
+      "project": "p-detail",
+      "assignees": [
+        "mrlq66cmegw7h"
+      ],
+      "status": "req",
+      "priority": "중간",
+      "requestedAt": "2026-07-15",
+      "due": "2026-07-18",
+      "requester": "",
+      "link": "",
+      "files": [],
+      "notes": ""
     }
   ],
   "projects": [
@@ -138,6 +156,6 @@
       "leadDays": 1
     }
   ],
-  "updatedAt": "2026-07-15T14:04:14.196Z",
+  "updatedAt": "2026-07-15T14:04:23.291Z",
   "seeded": true
 }
