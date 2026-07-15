@@ -38,6 +38,16 @@ function syncBadge() {
   const [label, cls] = map[store.status] || map.local;
   b.textContent = label;
   b.className = 'sync-badge ' + cls;
+  b.title = store.status === 'error'
+    ? `오류: ${store.lastError || '알 수 없음'} — 클릭하면 다시 동기화해요`
+    : (store.hasRemote() ? '클릭하면 최신 데이터를 다시 불러와요' : '설정에서 GitHub를 연결하면 팀 공유가 켜져요');
+  b.style.cursor = store.hasRemote() ? 'pointer' : 'default';
+  b.onclick = async () => {
+    if (!store.hasRemote()) return;
+    const ok = await store.pull();
+    if (ok) await store.push();
+    window.dispatchEvent(new Event('hashchange'));
+  };
 }
 
 store.onChange(syncBadge);

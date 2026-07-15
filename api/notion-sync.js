@@ -14,6 +14,38 @@
  */
 
 const GH_API = 'https://api.github.com';
+const NOTION_API = 'https://api.notion.com/v1';
+const NOTION_VER = '2022-06-28';
+
+/* ── 노션 API: 페이지 속성 + 본문 텍스트 가져오기 (NOTION_TOKEN 설정 시) ── */
+async function fetchNotionPage(pageId, token) {
+  const h = { Authorization: `Bearer ${token}`, 'Notion-Version': NOTION_VER };
+  const pres = await fetch(`${NOTION_API}/pages/${pageId}`, { headers: h });
+  if (!pres.ok) throw new Error('노션 페이지 조회 실패 ' + pres.status);
+  const page = await pres.json();
+
+  // 본문 블록 → 평문 (최대 2페이지 분량)
+  let body = '', cursor = null;
+  for (let i = 0; i < 3; i++) {
+    const url = `${NOTION_API}/blocks/${pageId}/children?page_size=100${cursor ? `&start_cursor=${cursor}` : ''}`;
+    const bres = await fetch(url, { headers: h });
+    if (!bres.ok) break;
+    const json = await bres.json();
+    for (const bl of json.results || []) {
+      const rt = bl[bl.type]?.rich_text;
+      if (!rt) continue;
+      const line = rt.map(x => x.plain_text || '').join('');
+      if (!line.trim()) continue;
+      const prefix = bl.type.startsWith('heading') ? '■ '
+        : bl.type === 'to_do' ? (bl.to_do?.checked ? '☑ ' : '☐ ')
+        : /list_item/.test(bl.type) ? '- ' : '';
+      body += prefix + line + '\n';
+    }
+    if (!json.has_more) break;
+    cursor = json.next_cursor;
+  }
+  return { page, body: body.trim().slice(0, 1800) };
+}
 
 const STATUS_MAP = {
   '요청': 'req', '시작 전': 'req', '진행 중': 'doing',
@@ -111,7 +143,7 @@ async function notifySlack(hook, t, boardUrl) {
 }
 
 export default async function handler(req, res) {
-  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', SLACK_WEBHOOK, SYNC_SECRET } = process.env;
+  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', SLACK_WEBHOOK, SYNC_SECRET, NOTION_TOKEN } = process.env;
   if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: '환경변수(GH_TOKEN/GH_REPO) 미설정' });
   if (!SYNC_SECRET || req.query.key !== SYNC_SECRET) return res.status(401).json({ error: 'key 불일치' });
   if (req.method !== 'POST') return res.status(200).json({ ok: true, hint: '노션 자동화 웹훅용 엔드포인트예요' });
@@ -119,10 +151,26 @@ export default async function handler(req, res) {
   try {
     // 노션 자동화 페이로드: { data: {page} } 또는 {page} 또는 페이지 객체 자체
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-    const page = body.data?.properties ? body.data : (body.page || (body.properties ? body : null));
+    let page = body.data?.properties ? body.data : (body.page || (body.properties ? body : null));
+    if (!page?.id && body.data?.id) page = body.data;
     if (!page) return res.status(400).json({ error: '페이지 데이터를 찾지 못했어요', got: Object.keys(body) });
 
+    // NOTION_TOKEN이 있으면 웹훅 페이로드 대신 API로 최신 속성 + 본문을 가져와요
+    let pageBody = '';
+    if (NOTION_TOKEN && page.id) {
+      try {
+        const fresh = await fetchNotionPage(page.id, NOTION_TOKEN);
+        page = fresh.page; pageBody = fresh.body;
+      } catch { /* 실패 시 페이로드 속성으로 진행 */ }
+    }
+
     const task = mapTask(page);
+    if (pageBody) task.notes = pageBody;
+
+    // 내용이 비어 있는 템플릿 페이지는 미러링하지 않아요 (작성 완료 후 트리거 권장)
+    if (!task.title || task.title === '(제목 없음)') {
+      return res.status(200).json({ ok: true, skipped: '제목이 비어 있어 건너뛰었어요 (작성 완료 후 전송해주세요)' });
+    }
 
     // db.json 갱신 (sha 충돌 시 1회 재시도)
     for (let attempt = 0; attempt < 2; attempt++) {

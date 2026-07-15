@@ -86,6 +86,33 @@ class Store {
     this._pushTimer = setTimeout(() => this.push(), 1200); // 연속 편집 디바운스
   }
 
+  /* 원격 db.json을 읽기만 (로컬 상태 안 건드림) */
+  async fetchRemote() {
+    const res = await fetch(this.ghUrl(), { headers: this.ghHeaders() });
+    if (!res.ok) throw new Error('GitHub 응답 ' + res.status);
+    const json = await res.json();
+    return { sha: json.sha, db: JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g, ''))))) };
+  }
+
+  /* 충돌 병합: 원격(노션 미러링·팀원 변경)과 로컬 변경을 합침 — 같은 항목은 로컬 우선 */
+  mergeDb(remote) {
+    const byId = arr => Object.fromEntries((arr || []).map(x => [x.id, x]));
+    const mergeArr = (loc, rem) => Object.values({ ...byId(rem), ...byId(loc) });
+    const L = this.db, R = remote || {};
+    return {
+      ...R, ...L,
+      tasks: mergeArr(L.tasks, R.tasks),
+      projects: mergeArr(L.projects, R.projects),
+      members: mergeArr(L.members, R.members),
+      rituals: mergeArr(L.rituals, R.rituals),
+      archive: mergeArr(L.archive, R.archive),
+      trends: mergeArr(L.trends, R.trends),
+      guardLog: [...(R.guardLog || []), ...(L.guardLog || []).filter(g => !(R.guardLog || []).some(r => r.at === g.at))],
+      config: { ...(R.config || {}), ...(L.config || {}) },
+      updatedAt: new Date().toISOString()
+    };
+  }
+
   async push(retry = true) {
     if (!this.hasRemote()) return;
     this.status = 'syncing'; this.emit();
@@ -100,16 +127,24 @@ class Store {
         method: 'PUT', headers: this.ghHeaders(), body: JSON.stringify(body)
       });
       if (res.status === 409 || res.status === 422) {
-        // 다른 팀원이 먼저 저장함 → 최신 sha 받아서 1회 재시도
-        if (retry) { await this.pull(); return this.push(false); }
-        throw new Error('동기화 충돌');
+        // 원격이 먼저 바뀜 (노션 미러링·다른 팀원) → 병합 후 1회 재시도
+        if (retry) {
+          const remote = await this.fetchRemote();
+          this.db = this.mergeDb(remote.db);
+          this.sha = remote.sha;
+          this.migrate();
+          this.save({ push: false });
+          return this.push(false);
+        }
+        throw new Error('동기화 충돌 — 다시 시도해주세요');
       }
       if (!res.ok) throw new Error('GitHub 저장 실패 ' + res.status);
       const json = await res.json();
       this.sha = json.content.sha;
       this.status = 'synced'; this.emit();
     } catch (e) {
-      console.error(e); this.status = 'error'; this.emit();
+      console.error(e); this.lastError = String(e.message || e);
+      this.status = 'error'; this.emit();
     }
   }
 
