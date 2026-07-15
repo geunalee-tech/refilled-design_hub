@@ -54,7 +54,7 @@
       "project": "",
       "assignees": [],
       "_plannerNames": [],
-      "status": "req",
+      "status": "doing",
       "priority": "🚨긴급",
       "requester": "노션 요청",
       "requestedAt": "2026-07-16",
@@ -124,7 +124,7 @@
       "role": "디자이너"
     }
   ],
-  "docs": [],
+  "rituals": [],
   "archive": [
     {
       "id": "mrm4cvnxqf6n6",
@@ -150,10 +150,6 @@
     }
   ],
   "trends": [],
-  "meta": {
-    "note": "앱이 첫 push 시 자동으로 채웁니다"
-  },
-  "rituals": [],
   "config": {
     "slackHookB64": "aHR0cHM6Ly9ob29rcy5zbGFjay5jb20vc2VydmljZXMvVDAxN0ExQVIxVVkvQjBCSEwwTFJUQzEvN0RNT2ViQVRGTEJoa2VzTTJXN2x1Mmxx"
   },
@@ -167,6 +163,10 @@
       "leadDays": 1
     }
   ],
-  "updatedAt": "2026-07-15T15:19:44.629Z",
-  "seeded": true
+  "updatedAt": "2026-07-15T15:22:09.796Z",
+  "seeded": true,
+  "docs": [],
+  "meta": {
+    "note": "앱이 첫 push 시 자동으로 채웁니다"
+  }
 }
