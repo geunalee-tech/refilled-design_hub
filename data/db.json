@@ -81,7 +81,7 @@
       "notionId": "384bd60b-5762-80dd-abbd-c18ac779709b",
       "kind": "request",
       "title": "부스터 미니 용기 & 단상자",
-      "project": "mrn337n50r5p7",
+      "project": "",
       "assignees": [],
       "status": "confirm",
       "priority": "중간",
@@ -339,7 +339,7 @@
       "id": "mrn337n50r5p7",
       "name": "[제품] 부스터 100ml",
       "color": "#6B5CA5",
-      "start": "2026-03-03",
+      "start": "2026-04-18",
       "end": "2026-07-24",
       "owner": "m-geuna"
     },
@@ -414,7 +414,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T06:42:38.000Z",
+  "updatedAt": "2026-07-16T08:09:31.218Z",
   "seeded": false,
   "docs": [],
   "meta": {
