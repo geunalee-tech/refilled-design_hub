@@ -317,9 +317,10 @@
       "id": "mrmsbnmiu953o",
       "name": "[쿠팡] 클렌저 대용량",
       "color": "#006DE2",
-      "start": "2026-03-03",
+      "start": "2026-07-01",
       "end": "2026-09-04",
-      "owner": "m-geuna"
+      "owner": "m-geuna",
+      "mt": "2026-07-16T08:12:28.673Z"
     },
     {
       "id": "mrmvv0x9jjlm9",
@@ -420,7 +421,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T08:12:19.404Z",
+  "updatedAt": "2026-07-16T08:12:28.673Z",
   "seeded": false,
   "docs": [],
   "meta": {
