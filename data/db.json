@@ -51,11 +51,12 @@
       "priority": "중간",
       "requester": "우정애",
       "requestedAt": "2026-07-16",
-      "due": "2026-07-20",
+      "due": "2026-07-18",
       "link": "https://www.figma.com/board/m1gH04Sb2ZCCD7qERS1L3E/-SNS--%EC%A3%BC%EC%B0%A8%EB%B3%84-%EC%BD%98%ED%85%90%EC%B8%A0-%EA%B8%B0%ED%9A%8D%EC%95%88?node-id=1127-114&t=GAx9hr9fZHLG3hA5-1",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/IG-7-OY-39fbd60b57628016a77cfb60222d290c",
-      "createdAt": "2026-07-16T01:59:16.377Z"
+      "createdAt": "2026-07-16T01:59:16.377Z",
+      "mt": "2026-07-16T08:10:00.303Z"
     },
     {
       "id": "nt_39fbd60b5762807c9c19e0b5314ac7a7",
@@ -323,10 +324,10 @@
       "id": "mrmvv0x9jjlm9",
       "name": "[인스타그램] 국내",
       "color": "#0F7B5F",
-      "start": "2026-07-16",
-      "end": "2026-07-20",
+      "start": "2026-07-14",
+      "end": "2026-07-18",
       "owner": null,
-      "mt": "2026-07-16T08:09:40.924Z"
+      "mt": "2026-07-16T08:10:00.303Z"
     },
     {
       "id": "mrn2swe6yp3b1",
@@ -415,7 +416,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T08:09:55.985Z",
+  "updatedAt": "2026-07-16T08:10:00.304Z",
   "seeded": false,
   "docs": [],
   "meta": {
