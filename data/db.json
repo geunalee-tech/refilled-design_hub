@@ -18,6 +18,23 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록",
       "createdAt": "2026-07-16T00:39:29.078Z"
+    },
+    {
+      "id": "nt_39fbd60b5762",
+      "notionId": "39fbd60b-5762-80eb-a196-cd36c9009687",
+      "kind": "request",
+      "title": "부스터 100ml 단상자 디자인요청",
+      "project": "",
+      "assignees": [],
+      "status": "req",
+      "priority": "🚨긴급",
+      "requester": "김수희",
+      "requestedAt": "2026-07-16",
+      "due": "2026-07-24",
+      "link": "https://www.figma.com/board/w4YhUPSZQZyKq61WAzHgg9/-%EC%A0%9C%ED%92%88%ED%8C%80--%EB%8B%A8%EC%83%81%EC%9E%90-%ED%8C%A8%ED%82%A4%EC%A7%80-%EA%B8%B0%ED%9A%8D%EC%95%88?node-id=8800-6689",
+      "files": [],
+      "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/100ml-39fbd60b576280eba196cd36c9009687",
+      "createdAt": "2026-07-16T01:49:43.450Z"
     }
   ],
   "projects": [
@@ -52,7 +69,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T00:48:54.451Z",
+  "updatedAt": "2026-07-16T01:49:43.655Z",
   "seeded": false,
   "docs": [],
   "meta": {
