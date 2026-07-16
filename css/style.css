@@ -327,6 +327,20 @@ a{color:inherit;text-decoration:none}
 .t2-todayline{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);pointer-events:none;z-index:1}
 .t2-mline{position:absolute;top:0;bottom:0;width:1px;background:var(--line);pointer-events:none;z-index:0}
 @media (max-width:640px){.t2-lab{width:190px;min-width:190px}.t2-barlb{left:200px}}
+/* ── 전체 일정 조정 팝업 ── */
+.pn2-click{cursor:pointer}
+.pn2-click:hover{text-decoration:underline;color:var(--accent)}
+.pf-shift{display:flex;align-items:center;gap:6px}
+.pf-shift-sum{font-family:var(--mono);font-size:12px;font-weight:800;min-width:52px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.pf-shift-sum.on{color:var(--amber)}
+.pf-bar{position:absolute;top:8px;height:20px;border-radius:6px;cursor:grab;touch-action:none;opacity:.9}
+.pf-bar:active{cursor:grabbing}
+.pf-today{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--amber);z-index:1;pointer-events:none}
+.pf-item{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--line-soft)}
+.pf-item:last-child{border-bottom:none}
+.pf-it-title{flex:1;min-width:0;font-size:12px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all}
+.pf-it-dd{font-family:var(--mono);font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;flex-shrink:0}
+.pf-item .pf-it-due{width:140px;flex-shrink:0}
 .g-due:hover{transform:scale(1.15)}
 .tl-bar{touch-action:none}
 .tl-addrow .tl-tname{padding-left:24px;gap:10px}
@@ -357,7 +371,7 @@ a{color:inherit;text-decoration:none}
 .np-preview{margin:6px 0 14px}
 .np-track{position:relative;height:36px;background:var(--line-soft);border-radius:8px;margin:16px 8px 22px}
 .np-tick{position:absolute;top:42px;font-size:9.5px;color:var(--muted);transform:translateX(-50%);font-variant-numeric:tabular-nums;white-space:nowrap}
-.np-dot{position:absolute;top:11px;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:grab;touch-action:none;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.np-dot{position:absolute;z-index:3;top:11px;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:grab;touch-action:none;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .np-dot:hover{transform:scale(1.2)}
 .np-dot:active{cursor:grabbing}
 .np-dot-lb{position:absolute;font-size:9px;color:var(--muted);transform:translateX(2px);font-variant-numeric:tabular-nums;pointer-events:none}

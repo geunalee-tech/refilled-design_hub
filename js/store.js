@@ -32,6 +32,32 @@ class Store {
     this.status = 'local';    // local | synced | syncing | error
     this.listeners = [];
     this._pushTimer = null;
+    this._snap = {};          // 항목별 스냅샷 (변경 감지 → mt 스탬프용)
+    this.rebuildSnap();
+  }
+
+  /* ── 항목 단위 수정시각(mt) ──
+     save() 때 스냅샷과 비교해 실제로 바뀐 항목에만 mt를 찍어요.
+     병합 시 같은 id가 충돌하면 mt가 최신인 쪽이 이겨서,
+     오래 열어둔 다른 탭이 낡은 데이터로 최신 변경을 되돌리는 걸 막아요. */
+  static ARR_KEYS = ['tasks', 'projects', 'members', 'rituals', 'archive', 'trends'];
+  _sig(item) { const { mt, ...rest } = item; return JSON.stringify(rest); }
+  rebuildSnap() {
+    this._snap = {};
+    Store.ARR_KEYS.forEach(k => (this.db[k] || []).forEach(it =>
+      it && it.id && (this._snap[k + ':' + it.id] = this._sig(it))));
+  }
+  stampChanged() {
+    const now = new Date().toISOString();
+    Store.ARR_KEYS.forEach(k => (this.db[k] || []).forEach(it => {
+      if (!it || !it.id) return;
+      if (this._snap[k + ':' + it.id] !== this._sig(it)) it.mt = now;
+    }));
+    this.rebuildSnap();
+  }
+  static newer(a, b) { // 같은 id 충돌 → mt 최신 승, 없거나 같으면 a(로컬) 우선
+    const ma = a?.mt || a?.createdAt || '', mb = b?.mt || b?.createdAt || '';
+    return mb > ma ? b : a;
   }
 
   onChange(fn) { this.listeners.push(fn); }
@@ -40,6 +66,7 @@ class Store {
   saveSettings() { localStorage.setItem(LS_SET, JSON.stringify(this.settings)); }
 
   save({ push = true } = {}) {
+    this.stampChanged();
     this.db.updatedAt = new Date().toISOString();
     localStorage.setItem(LS_DB, JSON.stringify(this.db));
     this.emit();
@@ -69,12 +96,21 @@ class Store {
       const json = await res.json();
       this.sha = json.sha;
       const remote = JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g, '')))));
-      // 최신 쪽 우선 (last-write-wins)
-      if (!this.db.updatedAt || (remote.updatedAt && remote.updatedAt > this.db.updatedAt)) {
+      if (this.db.seeded === true) {
+        // 로컬이 데모 시드 상태 → 팀 데이터를 통째로 받아들여요 (샘플이 팀 DB에 섞이지 않게)
         this.db = { ...DEFAULT_DB, ...remote };
-        this.migrate();
+        this.migrate(); this.rebuildSnap();
         localStorage.setItem(LS_DB, JSON.stringify(this.db));
+        this.status = 'synced'; this.emit();
+        return true;
       }
+      // 항목 단위 병합: 원격 최신은 받아들이고, 아직 푸시 못 한 내 변경(mt 최신)은 지켜요
+      const before = JSON.stringify({ ...remote, updatedAt: 0 });
+      this.db = { ...DEFAULT_DB, ...this.mergeDb(remote) };
+      this.migrate();
+      this.rebuildSnap();                       // 병합 결과에 내 mt가 새로 찍히지 않게
+      localStorage.setItem(LS_DB, JSON.stringify(this.db));
+      if (JSON.stringify({ ...this.db, updatedAt: 0 }) !== before) this.schedulePush(); // 로컬이 이긴 부분이 있으면 원격에도 반영
       this.status = 'synced'; this.emit();
       return true;
     } catch (e) {
@@ -95,10 +131,15 @@ class Store {
     return { sha: json.sha, db: JSON.parse(decodeURIComponent(escape(atob(json.content.replace(/\n/g, ''))))) };
   }
 
-  /* 충돌 병합: 원격(노션 미러링·팀원 변경)과 로컬 변경을 합침 — 같은 항목은 로컬 우선 */
+  /* 충돌 병합: 같은 항목은 '더 최근에 수정된 쪽(mt)'이 이겨요.
+     mt가 없거나 같으면 로컬 우선 (기존 동작 유지) */
   mergeDb(remote) {
     const byId = arr => Object.fromEntries((arr || []).map(x => [x.id, x]));
-    const mergeArr = (loc, rem) => Object.values({ ...byId(rem), ...byId(loc) });
+    const mergeArr = (loc, rem) => {
+      const L = byId(loc), R = byId(rem);
+      return [...new Set([...Object.keys(R), ...Object.keys(L)])]
+        .map(id => (id in L && id in R) ? Store.newer(L[id], R[id]) : (L[id] || R[id]));
+    };
     const L = this.db, R = remote || {};
     return {
       ...R, ...L,
@@ -134,6 +175,7 @@ class Store {
           this.db = this.mergeDb(remote.db);
           this.sha = remote.sha;
           this.migrate();
+          this.rebuildSnap();                   // 원격에서 받아온 항목에 내 mt가 찍히지 않게
           this.save({ push: false });
           return this.push(false);
         }

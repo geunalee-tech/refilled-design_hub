@@ -217,13 +217,14 @@ export function editTask(id, isRequest = false, preset = {}) {
         ${PRIORITY.map(p => `<option ${t.priority === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
     </div>
     <div class="field"><label>업무 제목</label><input id="t-title" value="${esc(t.title)}" placeholder="예: 7월 기획전 메인 배너"></div>
-    <div class="field"><label>프로젝트 <span class="muted" style="font-weight:400">(추가·삭제 가능)</span></label>
+    <div class="field"><label>프로젝트 <span class="muted" style="font-weight:400">(추가·이름변경·삭제 가능)</span></label>
       <div style="display:flex;gap:6px">
         <select id="t-project" style="flex:1">
           <option value="">미지정</option>
           ${db.projects.map(p => `<option value="${p.id}" ${t.project === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
           <option value="__new">＋ 새 프로젝트 추가…</option>
         </select>
+        <button class="btn sm" id="t-projren" title="선택한 프로젝트 이름 변경">✏️</button>
         <button class="btn sm" id="t-projdel" title="선택한 프로젝트 삭제">🗑</button>
       </div>
       <input id="t-newproj" placeholder="새 프로젝트 이름" style="display:none;margin-top:6px">
@@ -288,6 +289,26 @@ export function editTask(id, isRequest = false, preset = {}) {
 
     // 새 프로젝트 인라인 추가
     q('#t-project').onchange = e => q('#t-newproj').style.display = e.target.value === '__new' ? '' : 'none';
+
+    // 프로젝트 이름 변경 (연결된 업무는 그대로 따라와요 — id 기준 연결이라 안전)
+    q('#t-projren').onclick = () => {
+      const pid = q('#t-project').value;
+      if (!pid || pid === '__new') return toast('이름을 바꿀 프로젝트를 먼저 선택해주세요', true);
+      const p = db.projects.find(x => x.id === pid);
+      const input = prompt(`"${p.name}"의 새 이름을 입력해주세요`, p.name);
+      if (input === null) return;                       // 취소
+      const nm = input.trim();
+      if (!nm) return toast('이름이 비어 있어요', true);
+      if (nm === p.name) return;
+      if (db.projects.some(x => x.id !== pid && x.name === nm))
+        return toast('같은 이름의 프로젝트가 이미 있어요', true);
+      const old = p.name;
+      p.name = nm;
+      store.save();
+      rebuildProjOptions(pid);                          // 선택 유지한 채 목록 갱신
+      window.dispatchEvent(new Event('hashchange'));    // 뒤에 보이는 보드·타임라인도 즉시 새 이름으로
+      toast(`"${old}" → "${nm}"(으)로 이름을 바꿨어요`);
+    };
 
     // 프로젝트 삭제 (연결 업무는 미지정으로 남음)
     const rebuildProjOptions = (selected = '') => {

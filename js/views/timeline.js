@@ -100,7 +100,7 @@ export function renderTimeline(main) {
         <div class="t2-lab">
           <button class="tl-toggle ${isOpen ? 'open' : ''}" data-toggle="${p.id}">▸</button>
           <div class="t2-lab-main">
-            <span class="pn2" title="${esc(p.name)}">${esc(p.name)}</span>
+            <span class="pn2 pn2-click" data-editproj="${p.id}" title="${esc(p.name)} · 클릭하면 전체 일정을 조정할 수 있어요">${esc(p.name)}</span>
             <span class="t2-meta">${p.end ? `<b class="tl-dd ${ddCls}">${dday(p.end)}</b> · ` : ''}${rangeLb} · ${esc(store.memberName(p.owner))} · ${tasks.length}건</span>
           </div>
           <button class="tl-x" data-delproj="${p.id}" title="프로젝트 삭제">✕</button>
@@ -177,6 +177,8 @@ export function renderTimeline(main) {
   });
   main.querySelectorAll('.t2-lab .tt').forEach(el => el.onclick = () =>
     editTask(el.closest('[data-tid]').dataset.tid));
+  main.querySelectorAll('[data-editproj]').forEach(el => el.onclick = () =>
+    editProjectFlow(el.dataset.editproj, main));
 
   bindDrag(main);
 }
@@ -225,6 +227,182 @@ function bindDrag(main) {
     });
   });
 }
+
+/* ── 전체 플로우 편집: 프로젝트 기간 + 하위 업무 마감을 한 화면에서 조정 ── */
+function editProjectFlow(pid, main) {
+  const db = store.db;
+  const p = db.projects.find(x => x.id === pid);
+  if (!p) return;
+  const today = todayISO();
+
+  /* 작업본 (저장 전까지 원본 미변경) */
+  const w = { name: p.name, owner: p.owner || '', start: p.start || today, end: p.end || today };
+  const items = db.tasks.filter(t => t.project === pid && t.status !== 'done')
+    .sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1)
+    .map(t => ({ id: t.id, title: t.title, status: t.status, due: t.due || '' }));
+
+  openModal(`
+    <h2>전체 일정 조정</h2>
+    <div class="field"><label>프로젝트 이름</label><input id="pf-name" value="${esc(w.name)}"></div>
+    <div class="frow">
+      <div class="field"><label>시작일</label><input type="date" id="pf-start" value="${w.start}"></div>
+      <div class="field"><label>종료일</label><input type="date" id="pf-end" value="${w.end}"></div>
+      <div class="field"><label>담당자 (오너)</label><select id="pf-owner">
+        <option value="">미지정</option>
+        ${db.members.map(m => `<option value="${m.id}" ${m.id === w.owner ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>전체 밀기·당기기 <span class="muted" style="font-weight:400">(프로젝트 기간 + 하위 업무 마감일이 통째로 이동해요)</span></label>
+      <div class="pf-shift">
+        <button class="btn sm" data-shift="-7">◀ 1주</button>
+        <button class="btn sm" data-shift="-1">◀ 1일</button>
+        <span class="pf-shift-sum" id="pf-shift-sum">±0일</span>
+        <button class="btn sm" data-shift="1">1일 ▶</button>
+        <button class="btn sm" data-shift="7">1주 ▶</button>
+      </div>
+    </div>
+    <div class="field"><label>플로우 미리보기 <span class="muted" style="font-weight:400">(점 = 하위 업무 마감 · 드래그로 조정)</span></label>
+      <div id="pf-preview" class="np-preview"></div>
+    </div>
+    <div class="field"><label>하위 업무 마감일</label><div id="pf-items"></div></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" data-close>취소</button>
+      <button class="btn primary" id="pf-save">저장</button>
+    </div>
+  `, body => {
+    const q = sel => body.querySelector(sel);
+    let shifted = 0;
+
+    /* 미리보기 범위: 기간·마감을 모두 포함 + 여유 2일 */
+    const draw = () => {
+      const dues = items.filter(i => i.due).map(i => i.due);
+      const lo = addDays([w.start, ...dues].sort()[0], -2);
+      const hi0 = [w.end, ...dues].sort().slice(-1)[0];
+      const span = Math.max(7, Math.round((new Date(hi0 + 'T00:00:00') - new Date(lo + 'T00:00:00')) / 864e5) + 3);
+      const pos = iso => Math.round((new Date(iso + 'T00:00:00') - new Date(lo + 'T00:00:00')) / 864e5) / span * 100;
+
+      const ticks = [];
+      const step = span > 90 ? 30 : span > 40 ? 14 : 7;
+      for (let d = 0; d <= span; d += step)
+        ticks.push(`<span class="np-tick" style="left:${d / span * 100}%">${addDays(lo, d).slice(5).replace('-', '/')}</span>`);
+      const todayPos = pos(today);
+
+      q('#pf-preview').innerHTML = `
+        <div class="np-track">
+          ${ticks.join('')}
+          ${todayPos >= 0 && todayPos <= 100 ? `<span class="pf-today" style="left:${todayPos}%"></span>` : ''}
+          <div class="pf-bar" data-pfdrag="move" style="left:${pos(w.start)}%;width:${Math.max(2, pos(w.end) - pos(w.start) + 100 / span)}%;background:${p.color || 'var(--accent)'}">
+            <span class="g-h g-hl" data-pfdrag="l"></span><span class="g-h g-hr" data-pfdrag="r"></span>
+          </div>
+          ${(() => {
+            const seen = new Set(); const placed = [];
+            return items.map((it, i) => {
+              if (!it.due) return '';
+              const x = pos(it.due);
+              /* 가까운 점(3.5% 이내)들은 상·하단 순환 + 가로 미세 오프셋으로 분산 */
+              const close = placed.filter(q2 => Math.abs(q2.x - x) < 3.5).length;
+              const lane = close % 2, nudge = Math.floor(close / 2) * 9;
+              placed.push({ x, lane });
+              const showLb = !seen.has(it.due); seen.add(it.due);
+              return `
+            <div class="np-dot" data-pfdot="${i}" style="left:calc(${x}% + ${nudge - 7}px);top:${lane ? 19 : 3}px" title="${esc(it.title)} · ${it.due}"></div>
+            ${showLb ? `<span class="np-dot-lb" style="left:calc(${x}% - 7px);top:${seen.size % 2 ? -15 : 38}px">${it.due.slice(5).replace('-', '/')}</span>` : ''}`;
+            }).join('');
+          })()}
+        </div>`;
+
+      const pxPerDay = () => q('.np-track').getBoundingClientRect().width / span;
+
+      /* 점 드래그 = 하위 업무 마감 */
+      q('#pf-preview').querySelectorAll('[data-pfdot]').forEach(el => {
+        el.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          const i = +el.dataset.pfdot, startX = e.clientX, orig = items[i].due;
+          el.setPointerCapture(e.pointerId);
+          let dd = 0;
+          const mv = ev => {
+            dd = Math.round((ev.clientX - startX) / pxPerDay());
+            el.style.left = `calc(${pos(addDays(orig, dd))}% - 7px)`;
+          };
+          const up = () => {
+            el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up);
+            if (dd) items[i].due = addDays(orig, dd);
+            draw(); drawItems();
+          };
+          el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+        });
+      });
+
+      /* 바 드래그 = 프로젝트 기간 (이동/양끝) */
+      q('#pf-preview').querySelectorAll('[data-pfdrag]').forEach(el => {
+        el.addEventListener('pointerdown', e => {
+          e.preventDefault(); e.stopPropagation();
+          const mode = el.dataset.pfdrag, startX = e.clientX;
+          const o = { s: w.start, e: w.end };
+          el.setPointerCapture(e.pointerId);
+          let dd = 0;
+          const mv = ev => { dd = Math.round((ev.clientX - startX) / pxPerDay()); };
+          const up = () => {
+            el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up);
+            if (dd) {
+              if (mode === 'move' || mode === 'l') w.start = addDays(o.s, dd);
+              if (mode === 'move' || mode === 'r') w.end = addDays(o.e, dd);
+              if (w.start > w.end) [w.start, w.end] = [w.end, w.start];
+              q('#pf-start').value = w.start; q('#pf-end').value = w.end;
+            }
+            draw();
+          };
+          el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+        });
+      });
+    };
+
+    /* 하위 업무 목록: 날짜 인풋으로도 조정 */
+    const drawItems = () => {
+      q('#pf-items').innerHTML = items.map((it, i) => `
+        <div class="pf-item">
+          <span class="tk-dot ${it.status}"></span>
+          <span class="pf-it-title" title="${esc(it.title)}">${esc(it.title)}</span>
+          <span class="pf-it-dd">${it.due ? dday(it.due) : ''}</span>
+          <input type="date" class="pf-it-due" data-item="${i}" value="${it.due}">
+        </div>`).join('')
+        || '<div class="empty" style="padding:8px 2px">진행 중인 하위 업무가 없어요.</div>';
+      q('#pf-items').querySelectorAll('.pf-it-due').forEach(inp => inp.onchange = () => {
+        items[+inp.dataset.item].due = inp.value; draw(); drawItems();
+      });
+    };
+
+    /* 전체 밀기 */
+    body.querySelectorAll('[data-shift]').forEach(b => b.onclick = () => {
+      const n = +b.dataset.shift;
+      shifted += n;
+      w.start = addDays(w.start, n); w.end = addDays(w.end, n);
+      items.forEach(it => { if (it.due) it.due = addDays(it.due, n); });
+      q('#pf-start').value = w.start; q('#pf-end').value = w.end;
+      q('#pf-shift-sum').textContent = (shifted > 0 ? '+' : '') + shifted + '일';
+      q('#pf-shift-sum').classList.toggle('on', shifted !== 0);
+      draw(); drawItems();
+    });
+
+    q('#pf-start').onchange = e => { if (e.target.value) { w.start = e.target.value; if (w.start > w.end) w.end = w.start; q('#pf-end').value = w.end; draw(); } };
+    q('#pf-end').onchange = e => { if (e.target.value) { w.end = e.target.value; if (w.end < w.start) w.start = w.end; q('#pf-start').value = w.start; draw(); } };
+
+    q('#pf-save').onclick = () => {
+      const name = q('#pf-name').value.trim();
+      if (!name) return toast('프로젝트 이름을 입력해주세요', true);
+      p.name = name; p.owner = q('#pf-owner').value || null;
+      p.start = w.start; p.end = w.end;
+      items.forEach(it => {
+        const t = db.tasks.find(x => x.id === it.id);
+        if (t) t.due = it.due || t.due;
+      });
+      store.save(); closeModal(); renderTimeline(main);
+      toast(`"${name}" 일정을 저장했어요${shifted ? ` (전체 ${shifted > 0 ? '+' : ''}${shifted}일 이동)` : ''}`);
+    };
+
+    draw(); drawItems();
+  });
+}
+
 
 /* ── 프로젝트 성격별 템플릿 (기존 구글시트 운영 패턴 기반) ── */
 const TEMPLATES = {
