@@ -298,7 +298,7 @@
       "assignees": [
         "m-geuna"
       ],
-      "status": "confirm",
+      "status": "done",
       "priority": "중간",
       "requester": "이경윤",
       "requestedAt": "2026-07-07",
@@ -306,7 +306,8 @@
       "link": "https://app.notion.com/396bd60b5762809faeb0feb9ef5345b4",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z"
+      "createdAt": "2026-07-16T05:40:14.000Z",
+      "doneAt": "2026-07-16"
     }
   ],
   "projects": [
@@ -373,7 +374,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T06:07:53.206Z",
+  "updatedAt": "2026-07-16T06:08:01.091Z",
   "seeded": false,
   "docs": [],
   "meta": {
