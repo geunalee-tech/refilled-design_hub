@@ -5,13 +5,11 @@ import { editTask } from './tasks.js';
 import { ai } from '../ai.js';
 
 const TYPES = {
-  friday: { label: '금요 리포트', desc: '오늘 할 일 · 의사결정 포인트 · 막힌 일 · 차주 업무 — 태스크 데이터에서 자동 초안이 생성돼요.' },
-  weekly: { label: '위클리 미팅록', desc: '참석자 · 안건 · 논의 · 액션 아이템. 액션 아이템은 버튼 하나로 업무 보드에 등록돼요.' },
   goals: { label: '가중목', desc: '이번 주 가장 중요한 목표와 공약. 체크하면 달성률이 자동 계산돼요.' },
-  pulse: { label: '디자인 펄스', desc: '주간 디자인 크리틱 회의록 — 리뷰 대상 · 피드백 · 결정 사항.' },
+  pulse: { label: '디자인 펄스', desc: '매주 월요일 14:00, 노션 주간 디자인 펄스 회의록이 자동으로 아카이빙돼요.' },
 };
 
-let tab = 'friday';
+let tab = 'goals';
 
 export function renderRituals(main) {
   if (tab === 'goals') return renderWig(main);
@@ -25,7 +23,10 @@ export function renderRituals(main) {
     `<button data-tab="${k}" class="${tab === k ? 'active' : ''}">${v.label}</button>`).join('')}</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <p class="muted" style="font-size:12.5px;max-width:560px">${TYPES[tab].desc}</p>
-    <button class="btn primary" id="new-doc">+ 새 ${TYPES[tab].label}</button>
+    <div style="display:flex;gap:8px">
+      ${tab === 'pulse' ? '<button class="btn sm" id="pulse-sync">🔄 지금 동기화</button>' : ''}
+      <button class="btn primary" id="new-doc">+ 새 ${TYPES[tab].label}</button>
+    </div>
   </div>
   <div class="doc-list">
     ${docs.map(d => `<div class="doc-item" data-doc="${d.id}">
@@ -37,6 +38,7 @@ export function renderRituals(main) {
 
   main.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; renderRituals(main); });
   $('#new-doc').onclick = () => openDoc(null, main);
+  const ps = main.querySelector('#pulse-sync'); if (ps) ps.onclick = pulseSyncNow;
   main.querySelectorAll('[data-doc]').forEach(el => el.onclick = () => openDoc(el.dataset.doc, main));
 }
 
@@ -173,6 +175,8 @@ function goalsForm(doc, isNew, main) {
 /* ── 디자인 펄스 ── */
 function pulseForm(doc, isNew, main) {
   const d = doc.data;
+  /* 노션에서 아카이빙된 회의록 → 읽기 전용 뷰어 */
+  if (d.md !== undefined) return pulseViewer(doc, main);
   openModal(`
     <h2>${esc(doc.title)}</h2>
     <div class="frow"><div class="field"><label>제목</label><input id="p-title" value="${esc(doc.title)}"></div>
@@ -565,4 +569,72 @@ ${cfg.lag.map(g => { const v = lm[g.id] || {}; return `| ${g.label} | ${v.prev |
 | 담당자 | 공약 | 완료 기준 |
 | --- | --- | --- |
 ${(cur.data.commitments || []).map(c => `| ${c.member} | ${c.text} | ${c.criteria || ''} |`).join('\n') || '| | | |'}`;
+}
+
+/* ── 디자인 펄스: 노션 아카이브 뷰어 (읽기 전용) ── */
+function mdToHtml(md) {
+  const lines = String(md || '').split('\n');
+  let html = '', inList = false;
+  const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[^"(>])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  for (const raw of lines) {
+    const line = raw.replace(/\t/g, '  ');
+    if (/^##\s/.test(line)) { closeList(); html += `<h4>${inline(line.slice(3))}</h4>`; }
+    else if (/^#\s/.test(line)) { closeList(); html += `<h4>${inline(line.slice(2))}</h4>`; }
+    else if (/^\s*[-•]\s/.test(line)) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      const depth = Math.min(3, Math.floor((line.match(/^\s*/)[0].length) / 2));
+      html += `<li style="margin-left:${depth * 14}px">${inline(line.replace(/^\s*[-•]\s/, ''))}</li>`;
+    }
+    else if (/^>\s?/.test(line)) { closeList(); html += `<blockquote>${inline(line.replace(/^>\s?/, ''))}</blockquote>`; }
+    else if (!line.trim()) { closeList(); }
+    else { closeList(); html += `<p>${inline(line)}</p>`; }
+  }
+  closeList();
+  return html;
+}
+
+function pulseViewer(doc, main) {
+  openModal(`
+    <h2 style="margin-bottom:2px">${esc(doc.title)}</h2>
+    <p class="muted" style="font-size:11.5px;margin:0 0 12px">${fmtDate(doc.date)} · 노션 회의록 자동 아카이브${doc.syncedAt ? ` · 동기화 ${fmtDate(doc.syncedAt.slice(0, 10))}` : ''}</p>
+    <div class="pulse-view">${mdToHtml(doc.data.md)}</div>
+    <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">
+      ${doc.data.notionUrl ? `<a class="btn sm" href="${esc(doc.data.notionUrl)}" target="_blank" rel="noopener">노션 원본 열기 ↗</a>` : '<span></span>'}
+      <div style="display:flex;gap:8px">
+        <button class="btn sm danger" id="pv-del">삭제</button>
+        <button class="btn" data-close>닫기</button>
+      </div>
+    </div>
+  `, body => {
+    body.querySelector('#pv-del').onclick = () => {
+      if (!confirm('이 아카이브를 삭제할까요? (노션 원본은 그대로 남아요)')) return;
+      store.db.rituals = store.db.rituals.filter(r => r.id !== doc.id);
+      store.save(); closeModal(); renderRituals(main); toast('삭제했어요');
+    };
+  });
+}
+
+/* 수동 동기화: /api/pulse-sync 호출 (크론과 동일 로직) */
+export async function pulseSyncNow() {
+  let key = store.settings.syncKey;
+  if (!key) {
+    key = prompt('동기화 키(SYNC_SECRET)를 입력해주세요.\n한 번 입력하면 이 브라우저에 저장돼요.');
+    if (!key) return;
+    store.settings.syncKey = key.trim(); store.saveSettings();
+  }
+  toast('노션에서 디자인 펄스를 불러오는 중…');
+  try {
+    const res = await fetch(`/api/pulse-sync?key=${encodeURIComponent(store.settings.syncKey)}`);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || res.status);
+    toast(`동기화 완료 — 신규 ${json.added || 0}건 · 갱신 ${json.updated || 0}건`);
+    if (store.hasRemote()) await store.pull();
+    window.dispatchEvent(new Event('hashchange'));
+  } catch (e) {
+    toast(`동기화 실패: ${e.message} — Vercel 환경변수(NOTION_TOKEN 등)를 확인해주세요`, true);
+  }
 }

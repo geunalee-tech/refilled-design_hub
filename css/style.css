@@ -417,3 +417,12 @@ a{color:inherit;text-decoration:none}
 .att-btns{display:flex;gap:4px;align-items:center;flex-shrink:0}
 .att-dl{border:1px solid var(--line);background:#fff;border-radius:6px;color:var(--muted);font-size:10.5px;padding:3px 8px;cursor:pointer;white-space:nowrap}
 .att-dl:hover{color:var(--accent);border-color:var(--accent)}
+/* ── 디자인 펄스 아카이브 뷰어 ── */
+.pulse-view{font-size:12.5px;line-height:1.65;max-height:56vh;overflow-y:auto;padding:4px 2px;word-break:keep-all}
+.pulse-view h4{font-size:12.5px;font-weight:800;margin:16px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.pulse-view h4:first-child{margin-top:0}
+.pulse-view ul{margin:4px 0 8px;padding-left:18px}
+.pulse-view li{margin:3px 0}
+.pulse-view p{margin:5px 0}
+.pulse-view blockquote{margin:8px 0;padding:8px 12px;background:rgba(183,121,31,.08);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;font-size:12px}
+.pulse-view a{color:var(--accent);word-break:break-all}
