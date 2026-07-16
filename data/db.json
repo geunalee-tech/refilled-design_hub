@@ -376,9 +376,10 @@
       "id": "p-boosterog",
       "name": "[OY 기획세트] 부스터 리브랜딩 온고잉",
       "color": "#8C5A46",
-      "start": "2026-03-03",
+      "start": "2026-07-01",
       "end": "2026-08-31",
-      "owner": "m-geuna"
+      "owner": "m-geuna",
+      "mt": "2026-07-16T08:12:19.404Z"
     },
     {
       "id": "p-treatment",
@@ -419,7 +420,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T08:11:41.948Z",
+  "updatedAt": "2026-07-16T08:12:19.404Z",
   "seeded": false,
   "docs": [],
   "meta": {
