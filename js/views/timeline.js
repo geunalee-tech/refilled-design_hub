@@ -23,13 +23,34 @@ export function renderTimeline(main) {
     const d = addDays(winStart, i);
     scaleMarks.push(`<span style="left:${i / DAYS * 100}%">${d.slice(5).replace('-', '/')}</span>`);
   }
+  const todayPct = pctL(today);
+  if (todayPct >= 0 && todayPct <= 100)
+    scaleMarks.push(`<span class="g-today-lb" style="left:${todayPct}%">오늘</span>`);
 
-  const projRows = db.projects.map(p => {
+  /* 트랙 공통 배경: 주말 음영 + 월 경계선 + 오늘 이전 딤 */
+  let deco = '';
+  for (let i = 0; i < DAYS; i++) {
+    const iso = addDays(winStart, i);
+    const dow = new Date(iso + 'T00:00:00').getDay();
+    if (dow === 0 || dow === 6) deco += `<span class="g-wknd" style="left:${i / DAYS * 100}%;width:${100 / DAYS}%"></span>`;
+    if (iso.endsWith('-01')) deco += `<span class="g-month" style="left:${i / DAYS * 100}%"></span>`;
+  }
+  if (todayPct > 0) deco += `<span class="g-past" style="width:${Math.min(todayPct, 100)}%"></span>`;
+
+  /* 마감 임박 순 정렬 (표시 전용) */
+  const projs = [...db.projects].sort((a, b) => ((a.end || '9999') < (b.end || '9999') ? -1 : 1));
+
+  const projRows = projs.map(p => {
     const tasks = db.tasks.filter(t => t.project === p.id && t.status !== 'done')
       .sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1);
     const doneCnt = db.tasks.filter(t => t.project === p.id && t.status === 'done').length;
     const isOpen = expanded.has(p.id);
-    const l = pctL(p.start || today), r = pctL(p.end || today) + 100 / DAYS;
+    const rawL = pctL(p.start || today), rawR = pctL(p.end || today) + 100 / DAYS;
+    const clipL = rawL < 0, clipR = rawR > 100;
+    const l = Math.max(rawL, 0), r = Math.min(rawR, 100);
+    const remain = p.end ? dayIdx(p.end) - dayIdx(today) : null;
+    const ddCls = remain === null ? '' : remain < 0 ? 'over' : remain <= 7 ? 'warn' : '';
+    const ddTxt = p.end ? dday(p.end) : '';
 
     const taskRows = isOpen ? tasks.map(t => `
       <div class="tl-task" data-tid="${t.id}">
@@ -40,6 +61,7 @@ export function renderTimeline(main) {
           <button class="tl-x" data-deltask="${t.id}" title="업무 삭제">✕</button>
         </div>
         <div class="g-track tl-ttrack">
+          ${deco}
           ${t.due ? `<div class="g-due" data-drag="due" data-tid="${t.id}" style="left:calc(${pctL(t.due)}% - 7px)" title="${t.due} · 드래그로 마감일 조정"></div><span class="g-due-lb" style="left:calc(${pctL(t.due)}% + 11px)">${t.due.slice(5).replace('-', '/')}</span>` : '<span class="tl-nodue">마감일 없음</span>'}
           <div class="g-today" style="left:${pctL(today)}%"></div>
         </div>
@@ -54,11 +76,13 @@ export function renderTimeline(main) {
         <div class="tl-pname">
           <button class="tl-toggle ${isOpen ? 'open' : ''}" data-toggle="${p.id}">▸</button>
           <span class="pn" title="${esc(p.name)}">${esc(p.name)}</span>
-          <span class="pm">${(p.start || '').slice(5).replace('-', '/')} ~ ${(p.end || '').slice(5).replace('-', '/')} · ${esc(store.memberName(p.owner))} · ${tasks.length}건</span>
+          <span class="pm">${ddTxt ? `<b class="tl-dd ${ddCls}">${ddTxt}</b> · ` : ''}${(p.start || '').slice(5).replace('-', '/')} ~ ${(p.end || '').slice(5).replace('-', '/')} · ${esc(store.memberName(p.owner))} · ${tasks.length}건</span>
           <button class="tl-x" data-delproj="${p.id}" title="프로젝트 삭제">✕</button>
         </div>
         <div class="g-track tl-ptrack">
-          <div class="g-bar tl-bar" data-drag="move" data-pid="${p.id}"
+          ${deco}
+          <div class="g-bar tl-bar ${clipL ? 'clip-l' : ''} ${clipR ? 'clip-r' : ''}" data-drag="move" data-pid="${p.id}"
+               title="${p.start} ~ ${p.end}${ddTxt ? ` · ${ddTxt}` : ''} · 드래그로 기간 이동"
                style="left:${l}%;width:${Math.max(2, r - l)}%;background:${p.color || 'var(--accent)'}">
             <span class="g-h g-hl" data-drag="l" data-pid="${p.id}"></span>
             <span class="g-h g-hr" data-drag="r" data-pid="${p.id}"></span>

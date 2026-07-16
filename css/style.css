@@ -280,6 +280,19 @@ a{color:inherit;text-decoration:none}
 .g-hr{right:0;border-radius:0 5px 5px 0}
 .tl-bar:hover .g-h{background:rgba(255,255,255,.35)}
 .g-due{position:absolute;top:2px;width:14px;height:14px;border-radius:4px;background:var(--accent);cursor:grab;z-index:2;touch-action:none}
+/* ── v30 타임라인 가독성 ── */
+.g-wknd{position:absolute;top:0;bottom:0;background:rgba(125,125,125,.08);z-index:0;pointer-events:none}
+.g-month{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--line);z-index:1;pointer-events:none}
+.g-past{position:absolute;left:0;top:0;bottom:0;background:rgba(125,125,125,.09);z-index:0;pointer-events:none;border-radius:6px 0 0 6px}
+.g-today-lb{background:var(--amber);color:#1c1917;font-weight:700;font-size:9px;padding:1px 5px;border-radius:99px;transform:translateX(-50%);z-index:3}
+.tl-dd{font-family:var(--mono);font-size:9.5px;font-weight:700;padding:0 5px;border-radius:99px;background:var(--line-soft);color:var(--ink)}
+.tl-dd.warn{background:rgba(183,121,31,.18);color:var(--amber)}
+.tl-dd.over{background:rgba(192,57,43,.16);color:var(--red)}
+.tl-bar.clip-l{border-top-left-radius:0;border-bottom-left-radius:0}
+.tl-bar.clip-r{border-top-right-radius:0;border-bottom-right-radius:0}
+.tl-bar.clip-l::before{content:'';position:absolute;left:0;top:0;bottom:0;width:7px;background:linear-gradient(90deg,rgba(255,255,255,.5),transparent);pointer-events:none}
+.tl-bar.clip-r::after{content:'';position:absolute;right:0;top:0;bottom:0;width:7px;background:linear-gradient(270deg,rgba(255,255,255,.5),transparent);pointer-events:none}
+.tl-bar,.g-due{z-index:1}
 .g-due:hover{transform:scale(1.15)}
 .tl-bar{touch-action:none}
 .tl-addrow .tl-tname{padding-left:24px;gap:10px}

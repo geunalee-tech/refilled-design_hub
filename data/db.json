@@ -81,7 +81,7 @@
       "notionId": "384bd60b-5762-80dd-abbd-c18ac779709b",
       "kind": "request",
       "title": "부스터 미니 용기 & 단상자",
-      "project": "",
+      "project": "mrn337n50r5p7",
       "assignees": [],
       "status": "confirm",
       "priority": "중간",
@@ -136,7 +136,7 @@
       "notionId": "381bd60b-5762-80cd-8ef6-ffd37e39d4de",
       "kind": "request",
       "title": "[올리브영] 아이래쉬 ver3(뷰러 기획세트) 단상자 디자인",
-      "project": "",
+      "project": "p-eyelashv3",
       "assignees": [
         "m-yeonwoo"
       ],
@@ -176,7 +176,7 @@
       "notionId": "39cbd60b-5762-8007-96cb-e8d75f636945",
       "kind": "request",
       "title": "[올리브영] 산리오 2종 상세페이지 제작 요청",
-      "project": "",
+      "project": "p-sanrio2",
       "assignees": [
         "m-yeonwoo",
         "m-minhyeon"
@@ -315,9 +315,9 @@
       "id": "mrmsbnmiu953o",
       "name": "[쿠팡] 클렌저 대용량",
       "color": "#006DE2",
-      "start": "2026-07-16",
-      "end": "2026-07-20",
-      "owner": null
+      "start": "2026-03-03",
+      "end": "2026-09-04",
+      "owner": "m-geuna"
     },
     {
       "id": "mrmvv0x9jjlm9",
@@ -331,17 +331,17 @@
       "id": "mrn2swe6yp3b1",
       "name": "리브랜딩 프로젝트",
       "color": "#B7791F",
-      "start": "2026-07-16",
+      "start": "2026-03-03",
       "end": "2026-07-31",
-      "owner": null
+      "owner": "m-geuna"
     },
     {
       "id": "mrn337n50r5p7",
       "name": "[제품] 부스터 100ml",
       "color": "#6B5CA5",
-      "start": "2026-07-16",
+      "start": "2026-03-03",
       "end": "2026-07-24",
-      "owner": null
+      "owner": "m-geuna"
     },
     {
       "id": "mrn36xqg6b5em",
@@ -349,6 +349,46 @@
       "color": "#8A3B5E",
       "start": "2026-07-16",
       "end": "2026-08-15",
+      "owner": null
+    },
+    {
+      "id": "p-sanrio2",
+      "name": "[OY 기획세트] 산리오 2종",
+      "color": "#C2557E",
+      "start": "2026-03-03",
+      "end": "2026-07-30",
+      "owner": "m-yeonwoo"
+    },
+    {
+      "id": "p-eyelashv3",
+      "name": "[OY 기획세트] 아이래쉬 V3",
+      "color": "#A34A4A",
+      "start": "2026-03-03",
+      "end": "2026-07-31",
+      "owner": "m-yeonwoo"
+    },
+    {
+      "id": "p-boosterog",
+      "name": "[OY 기획세트] 부스터 리브랜딩 온고잉",
+      "color": "#8C5A46",
+      "start": "2026-03-03",
+      "end": "2026-08-31",
+      "owner": "m-geuna"
+    },
+    {
+      "id": "p-treatment",
+      "name": "[리브랜딩] 트리트먼트",
+      "color": "#3B7A8A",
+      "start": "2026-03-03",
+      "end": "2026-07-31",
+      "owner": "m-geuna"
+    },
+    {
+      "id": "p-effector",
+      "name": "[리브랜딩] 이펙터",
+      "color": "#5E8C5A",
+      "start": "2026-07-01",
+      "end": "2026-07-24",
       "owner": null
     }
   ],
@@ -374,7 +414,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T06:08:01.091Z",
+  "updatedAt": "2026-07-16T06:42:38.000Z",
   "seeded": false,
   "docs": [],
   "meta": {
