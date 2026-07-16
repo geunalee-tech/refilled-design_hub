@@ -155,7 +155,7 @@
       "notionId": "39cbd60b-5762-807b-b336-ec7452ff2619",
       "kind": "request",
       "title": "이마트 트레이더스 RRP 패키지 제작 요청",
-      "project": "",
+      "project": "mrn337n50r5p7",
       "assignees": [
         "m-geuna",
         "m-yeonwoo",
@@ -365,7 +365,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T05:44:07.973Z",
+  "updatedAt": "2026-07-16T05:44:11.257Z",
   "seeded": false,
   "docs": [],
   "meta": {
