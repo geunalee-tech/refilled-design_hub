@@ -1,3 +1,4 @@
+import { mentionizeNames } from './slackmap.js';
 /* store.js — 단일 원천 데이터 스토어
    로컬(localStorage) 우선 + GitHub 저장소(data/db.json)를 팀 공유 DB로 동기화 */
 
@@ -162,6 +163,19 @@ class Store {
   migrate() {
     if (!this.db.config) this.db.config = {};
     if (!Array.isArray(this.db.guardLog)) this.db.guardLog = [];
+    // 노션 미러링 업무의 id를 전체 UUID 기반으로 통일 + 중복 id 복구 (구버전 12자리 id 충돌 해결)
+    const seenIds = new Set();
+    (this.db.tasks || []).forEach(t => {
+      if (t.notionId) {
+        const nid = 'nt_' + String(t.notionId).replace(/-/g, '');
+        if (t.id !== nid) t.id = nid;
+      }
+    });
+    (this.db.tasks || []).forEach(t => {
+      while (seenIds.has(t.id)) t.id = t.id + '_' + Math.random().toString(36).slice(2, 6);
+      seenIds.add(t.id);
+    });
+
     // 멤버 목록이 비어 있으면 디자인팀 기본 구성으로 복구
     if (!Array.isArray(this.db.members) || this.db.members.length === 0) {
       this.db.members = [
@@ -251,7 +265,7 @@ class Store {
       { type: 'header', text: { type: 'plain_text', text: t.title.slice(0, 148), emoji: true } },
       { type: 'section', fields: [
         { type: 'mrkdwn', text: `*프로젝트:* ${proj}` },
-        { type: 'mrkdwn', text: `*기획자·요청자:* ${t.requester || '미기재'}` },
+        { type: 'mrkdwn', text: `*기획자·요청자:* ${mentionizeNames(t.requester) || '미기재'}` },
         { type: 'mrkdwn', text: `*요청일:* ${t.requestedAt || '-'}` },
         { type: 'mrkdwn', text: `*마감일:* ${t.due || '미정'}` },
         { type: 'mrkdwn', text: `*우선순위:* ${t.priority || '중간'}` },

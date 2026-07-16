@@ -2,6 +2,7 @@
 import { store, uid, todayISO } from '../store.js';
 import { esc, openModal, closeModal, toast, dday, fmtDate, STATUS, PRIORITY, $ } from '../ui.js';
 import { renderTimeline } from './timeline.js';
+import { SLACK_NAME_MAP } from '../slackmap.js';
 
 const ORDER = ['req', 'doing', 'confirm'];
 const MIN_LEAD_BDAYS = 2;   // 요청→마감 최소 영업일
@@ -240,7 +241,8 @@ export function editTask(id, isRequest = false, preset = {}) {
         <span class="due-load" id="t-dueload"></span></div>
     </div>
     <div class="guard-box" id="t-guard" hidden></div>
-    <div class="field" id="f-requester"><label>요청자</label><input id="t-requester" value="${esc(t.requester || '')}" placeholder="예: 마케팅팀 이지수"></div>
+    <div class="field" id="f-requester"><label>요청자</label><input id="t-requester" value="${esc(t.requester || '')}" placeholder="예: MD팀 강다현" list="req-names">
+      <datalist id="req-names">${Object.keys(SLACK_NAME_MAP).map(n => `<option value="${n}">`).join('')}</datalist></div>
     <div class="field"><label>링크 (피그마·노션·드라이브 등)</label>
       <div style="display:flex;gap:6px">
         <input id="t-link" value="${esc(t.link || '')}" placeholder="https://" style="flex:1">

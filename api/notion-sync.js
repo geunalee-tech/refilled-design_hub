@@ -95,7 +95,7 @@ function mapTask(page) {
   const plannerNames = planners.map(u => u.name).filter(Boolean);
   const requester = (plannerNames[0] || '노션 요청') + (plannerNames.length > 1 ? ` 외 ${plannerNames.length - 1}` : '');
   return {
-    id: 'nt_' + (page.id || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12),
+    id: 'nt_' + (page.id ? page.id.replace(/-/g, '') : Math.random().toString(36).slice(2) + Date.now().toString(36)),
     notionId: page.id || null,
     kind: 'request', title, project: '', assignees: [], _designerNames: designers, _planners: planners,
     status, priority: ['🚨긴급', '높음', '중간', '낮음', '보류'].includes(priority) ? priority : '중간',
