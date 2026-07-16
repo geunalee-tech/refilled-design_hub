@@ -574,13 +574,28 @@
         "evalNote": ""
       },
       "mt": "2026-07-16T13:02:56.808Z"
+    },
+    {
+      "id": "mrniseqf6bmnn",
+      "type": "goals",
+      "date": "2026-06-22",
+      "title": "6월 4주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T13:03:33.783Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T13:03:33.783Z"
     }
   ],
   "archive": [],
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T13:03:19.143Z",
+  "updatedAt": "2026-07-16T13:03:33.783Z",
   "seeded": false,
   "docs": [],
   "meta": {
