@@ -554,18 +554,20 @@
       "createdAt": "2026-07-16T13:02:48.783Z",
       "data": {
         "commitments": [],
-        "leadWeek": {},
+        "leadWeek": {
+          "mrni3yyy8h5a1": 0
+        },
         "lagMonth": {},
         "evalNote": ""
       },
-      "mt": "2026-07-16T13:02:48.783Z"
+      "mt": "2026-07-16T13:02:56.808Z"
     }
   ],
   "archive": [],
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T13:02:48.783Z",
+  "updatedAt": "2026-07-16T13:02:56.808Z",
   "seeded": false,
   "docs": [],
   "meta": {
