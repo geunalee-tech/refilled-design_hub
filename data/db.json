@@ -540,10 +540,14 @@
           "mrni3yyyale7e": 1,
           "mrni3yyyfwum1": 2
         },
-        "lagMonth": {},
+        "lagMonth": {
+          "mrni3yyysgb92": {
+            "prev": "12.3%"
+          }
+        },
         "evalNote": ""
       },
-      "mt": "2026-07-16T13:02:45.258Z"
+      "mt": "2026-07-16T13:03:05.193Z"
     },
     {
       "id": "mrnirg0fdi35d",
@@ -567,7 +571,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T13:02:56.808Z",
+  "updatedAt": "2026-07-16T13:03:05.193Z",
   "seeded": false,
   "docs": [],
   "meta": {
