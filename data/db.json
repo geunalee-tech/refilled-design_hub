@@ -1,1 +1,30 @@
-{"tasks":[],"projects":[],"members":[],"docs":[],"archive":[],"trends":[],"meta":{"note":"앱이 첫 push 시 자동으로 채웁니다"}}
+{
+  "tasks": [
+    {
+      "id": "nt_39dbd60b5762",
+      "notionId": "39dbd60b-5762-80ef-adc3-fb06d5bb8601",
+      "kind": "request",
+      "title": "쿠팡 클렌저 용기 디자인 요청",
+      "project": "",
+      "assignees": [],
+      "status": "req",
+      "priority": "높음",
+      "requester": "강다현",
+      "requestedAt": "2026-07-14",
+      "due": "2026-07-20",
+      "link": "https://app.notion.com/p/39dbd60b576280efadc3fb06d5bb8601",
+      "files": [],
+      "notes": "노션 요청 DB에서 자동 등록",
+      "createdAt": "2026-07-16T00:39:29.078Z"
+    }
+  ],
+  "projects": [],
+  "members": [],
+  "docs": [],
+  "archive": [],
+  "trends": [],
+  "meta": {
+    "note": "앱이 첫 push 시 자동으로 채웁니다"
+  },
+  "updatedAt": "2026-07-16T00:39:29.282Z"
+}
