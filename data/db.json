@@ -542,12 +542,13 @@
         },
         "lagMonth": {
           "mrni3yyysgb92": {
-            "prev": "12.3%"
+            "prev": "12.3%",
+            "cur": "11%"
           }
         },
         "evalNote": ""
       },
-      "mt": "2026-07-16T13:03:05.193Z"
+      "mt": "2026-07-16T13:03:07.445Z"
     },
     {
       "id": "mrnirg0fdi35d",
@@ -571,7 +572,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T13:03:05.193Z",
+  "updatedAt": "2026-07-16T13:03:07.445Z",
   "seeded": false,
   "docs": [],
   "meta": {
