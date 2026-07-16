@@ -657,19 +657,298 @@
       "author": "",
       "createdAt": "2026-07-16T12:45:52.826Z",
       "data": {
+        "commitments": [
+          {
+            "id": "mrni5zz8vucf3",
+            "member": "이근아",
+            "text": "",
+            "criteria": "",
+            "leadId": "",
+            "done": false,
+            "reason": ""
+          }
+        ],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:08.228Z"
+    },
+    {
+      "id": "mrni5zz9k8er9",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:08.229Z",
+      "data": {
+        "commitments": [
+          {
+            "id": "mrni605h0vd5g",
+            "member": "이근아",
+            "text": "",
+            "criteria": "",
+            "leadId": "",
+            "done": false,
+            "reason": ""
+          }
+        ],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:08.453Z"
+    },
+    {
+      "id": "mrni605hrou99",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:08.453Z",
+      "data": {
+        "commitments": [
+          {
+            "id": "mrni60f3nrqfu",
+            "member": "이근아",
+            "text": "",
+            "criteria": "",
+            "leadId": "",
+            "done": false,
+            "reason": ""
+          }
+        ],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:08.799Z"
+    },
+    {
+      "id": "mrni60f3o5kcq",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:08.799Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 1
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:09.504Z"
+    },
+    {
+      "id": "mrni60yo103ye",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:09.504Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:10.210Z"
+    },
+    {
+      "id": "mrni61ibx9p9i",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:10.211Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:10.958Z"
+    },
+    {
+      "id": "mrni623343rus",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:10.959Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:11.260Z"
+    },
+    {
+      "id": "mrni62bh6xmm3",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:11.261Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 1
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:11.618Z"
+    },
+    {
+      "id": "mrni62lf9ase3",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:11.619Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:12.010Z"
+    },
+    {
+      "id": "mrni62wa2jwmr",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:12.010Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:12.174Z"
+    },
+    {
+      "id": "mrni630u4toki",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:12.174Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:12.342Z"
+    },
+    {
+      "id": "mrni635j839wa",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:12.343Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 1
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:12.683Z"
+    },
+    {
+      "id": "mrni63f0zdu6w",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:12.684Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyyfwum1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:13.043Z"
+    },
+    {
+      "id": "mrni63p0xtor5",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:13.044Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyy8h5a1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:13.508Z"
+    },
+    {
+      "id": "mrni641weah0j",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:13.508Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {
+          "mrni3yyy8h5a1": 0
+        },
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T12:46:13.748Z"
+    },
+    {
+      "id": "mrni648lctfd5",
+      "type": "goals",
+      "date": "2026-07-04",
+      "title": "7월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T12:46:13.749Z",
+      "data": {
         "commitments": [],
         "leadWeek": {},
         "lagMonth": {},
         "evalNote": ""
       },
-      "mt": "2026-07-16T12:45:52.826Z"
+      "mt": "2026-07-16T12:46:13.749Z"
     }
   ],
   "archive": [],
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T12:45:52.826Z",
+  "updatedAt": "2026-07-16T12:46:13.749Z",
   "seeded": false,
   "docs": [],
   "meta": {
