@@ -141,7 +141,7 @@
         "m-yeonwoo"
       ],
       "status": "confirm",
-      "priority": "중간",
+      "priority": "보류",
       "requester": "강다현",
       "requestedAt": "2026-06-16",
       "due": "2026-07-10",
@@ -373,7 +373,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T05:46:57.736Z",
+  "updatedAt": "2026-07-16T06:07:35.545Z",
   "seeded": false,
   "docs": [],
   "meta": {
