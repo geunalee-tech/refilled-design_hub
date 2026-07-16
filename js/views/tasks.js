@@ -36,8 +36,11 @@ export function renderTasks(main, sub = '') {
   if (sub === 'projects') return renderTimeline(main);
   const db = store.db;
   const forceKind = sub === 'requests' ? 'request' : '';
+  const kindMatch = (t, k) => k === 'project'
+    ? (t.kind === 'project' || !!t.project)   // '프로젝트' = 프로젝트에 연결된 업무 전부
+    : t.kind === k;
   const match = t =>
-    (!(forceKind || filter.kind) || t.kind === (forceKind || filter.kind)) &&
+    (!(forceKind || filter.kind) || kindMatch(t, forceKind || filter.kind)) &&
     (!filter.assignee || (t.assignees || []).includes(filter.assignee)) &&
     (!filter.project || t.project === filter.project);
   const tasks = db.tasks.filter(match);
@@ -157,7 +160,7 @@ function bindDoneSection(main, sub = '') {
 
   const forceKind = sub === 'requests' ? 'request' : '';
   const match = t =>
-    (!(forceKind || filter.kind) || t.kind === (forceKind || filter.kind)) &&
+    (!(forceKind || filter.kind) || ((forceKind || filter.kind) === 'project' ? (t.kind === 'project' || !!t.project) : t.kind === (forceKind || filter.kind))) &&
     (!filter.assignee || (t.assignees || []).includes(filter.assignee)) &&
     (!filter.project || t.project === filter.project);
 
