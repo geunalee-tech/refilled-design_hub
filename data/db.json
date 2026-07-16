@@ -43,7 +43,7 @@
       "notionId": "39fbd60b-5762-8016-a77c-fb60222d290c",
       "kind": "request",
       "title": "[IG] 7월 OY 클렌저 런칭 스토리",
-      "project": "",
+      "project": "mrmvv0x9jjlm9",
       "assignees": [
         "m-minhyeon"
       ],
@@ -63,6 +63,14 @@
       "id": "mrmsbnmiu953o",
       "name": "[쿠팡] 클렌저 대용량",
       "color": "#006DE2",
+      "start": "2026-07-16",
+      "end": "2026-07-20",
+      "owner": null
+    },
+    {
+      "id": "mrmvv0x9jjlm9",
+      "name": "[인스타그램] 국내",
+      "color": "#0F7B5F",
       "start": "2026-07-16",
       "end": "2026-07-20",
       "owner": null
@@ -90,7 +98,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T02:21:19.949Z",
+  "updatedAt": "2026-07-16T02:21:44.685Z",
   "seeded": false,
   "docs": [],
   "meta": {
