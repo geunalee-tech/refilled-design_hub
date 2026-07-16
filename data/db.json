@@ -284,11 +284,12 @@
       "priority": "높음",
       "requester": "이재훈",
       "requestedAt": "2026-07-01",
-      "due": "",
+      "due": "2026-07-30",
       "link": "https://app.notion.com/390bd60b57628021a7f6d30960ce052f",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z"
+      "createdAt": "2026-07-16T05:40:14.000Z",
+      "mt": "2026-07-16T08:11:01.003Z"
     },
     {
       "id": "nt_396bd60b5762809faeb0feb9ef5345b4",
@@ -416,7 +417,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T08:10:40.714Z",
+  "updatedAt": "2026-07-16T08:11:01.003Z",
   "seeded": false,
   "docs": [],
   "meta": {
