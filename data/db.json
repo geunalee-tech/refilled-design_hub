@@ -243,7 +243,7 @@
       "priority": "중간",
       "requester": "김수희 외 1",
       "requestedAt": "2026-06-29",
-      "due": "2026-07-13",
+      "due": "2026-07-21",
       "link": "https://app.notion.com/390bd60b576280d0aeb1d773c61e9812",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
@@ -373,7 +373,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T06:07:46.959Z",
+  "updatedAt": "2026-07-16T06:07:53.206Z",
   "seeded": false,
   "docs": [],
   "meta": {
