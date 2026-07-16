@@ -339,7 +339,7 @@
       "id": "mrn337n50r5p7",
       "name": "[제품] 부스터 100ml",
       "color": "#6B5CA5",
-      "start": "2026-03-30",
+      "start": "2026-04-19",
       "end": "2026-07-24",
       "owner": "m-geuna"
     },
@@ -414,7 +414,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T07:31:06.225Z",
+  "updatedAt": "2026-07-16T07:31:08.129Z",
   "seeded": false,
   "docs": [],
   "meta": {
