@@ -589,13 +589,73 @@
         "evalNote": ""
       },
       "mt": "2026-07-16T13:03:33.783Z"
+    },
+    {
+      "id": "mrnisfzgk0ryw",
+      "type": "goals",
+      "date": "2026-06-15",
+      "title": "6월 3주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T13:03:35.404Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T13:03:35.404Z"
+    },
+    {
+      "id": "mrnisg4wtj3uc",
+      "type": "goals",
+      "date": "2026-06-08",
+      "title": "6월 2주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T13:03:35.600Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T13:03:35.600Z"
+    },
+    {
+      "id": "mrnisg9lx9gub",
+      "type": "goals",
+      "date": "2026-06-01",
+      "title": "6월 1주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T13:03:35.769Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T13:03:35.769Z"
+    },
+    {
+      "id": "mrnisgn66wnff",
+      "type": "goals",
+      "date": "2026-05-25",
+      "title": "5월 5주차 가중목",
+      "author": "",
+      "createdAt": "2026-07-16T13:03:36.258Z",
+      "data": {
+        "commitments": [],
+        "leadWeek": {},
+        "lagMonth": {},
+        "evalNote": ""
+      },
+      "mt": "2026-07-16T13:03:36.258Z"
     }
   ],
   "archive": [],
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T13:03:33.783Z",
+  "updatedAt": "2026-07-16T13:03:36.258Z",
   "seeded": false,
   "docs": [],
   "meta": {
