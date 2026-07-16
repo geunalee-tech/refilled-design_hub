@@ -273,7 +273,7 @@
       "notionId": "390bd60b-5762-8021-a7f6-d30960ce052f",
       "kind": "request",
       "title": "두피스캐너 디자인",
-      "project": "mrn2swe6yp3b1",
+      "project": "mrn36xqg6b5em",
       "assignees": [
         "m-geuna",
         "m-yeonwoo",
@@ -341,6 +341,14 @@
       "start": "2026-07-16",
       "end": "2026-07-24",
       "owner": null
+    },
+    {
+      "id": "mrn36xqg6b5em",
+      "name": "[제품] 두피 스캐너",
+      "color": "#8A3B5E",
+      "start": "2026-07-16",
+      "end": "2026-08-15",
+      "owner": null
     }
   ],
   "members": [
@@ -365,7 +373,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T05:46:43.784Z",
+  "updatedAt": "2026-07-16T05:46:57.736Z",
   "seeded": false,
   "docs": [],
   "meta": {
