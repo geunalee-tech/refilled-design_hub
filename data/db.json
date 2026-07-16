@@ -25,8 +25,10 @@
       "kind": "request",
       "title": "부스터 100ml 단상자 디자인요청",
       "project": "",
-      "assignees": [],
-      "status": "req",
+      "assignees": [
+        "m-geuna"
+      ],
+      "status": "doing",
       "priority": "🚨긴급",
       "requester": "김수희",
       "requestedAt": "2026-07-16",
@@ -35,23 +37,6 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/100ml-39fbd60b576280eba196cd36c9009687",
       "createdAt": "2026-07-16T01:49:43.450Z"
-    },
-    {
-      "id": "nt_39fbd60b5762",
-      "notionId": "39fbd60b-5762-807c-9c19-e0b5314ac7a7",
-      "kind": "request",
-      "title": "[브랜디드] 범용 브랜드 소개서",
-      "project": "",
-      "assignees": [],
-      "status": "req",
-      "priority": "중간",
-      "requester": "정라영",
-      "requestedAt": "2026-07-16",
-      "due": "2026-07-31",
-      "link": "https://www.figma.com/deck/vXLZk1EAWrrFXp3Kt8PLga",
-      "files": [],
-      "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/39fbd60b5762807c9c19e0b5314ac7a7",
-      "createdAt": "2026-07-16T01:54:27.180Z"
     }
   ],
   "projects": [
@@ -86,7 +71,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-16T01:54:27.361Z",
+  "updatedAt": "2026-07-16T01:55:04.895Z",
   "seeded": false,
   "docs": [],
   "meta": {
