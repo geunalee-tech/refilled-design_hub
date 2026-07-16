@@ -6,10 +6,14 @@ const LS_DB = 'rfhub_db_v1';
 const LS_SET = 'rfhub_settings_v1';
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-export const todayISO = (offset = 0) => {
-  const d = new Date(); d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
+/* 로컬(사용자 시간대) 기준 날짜 헬퍼 — toISOString은 UTC라 한국(UTC+9)에서 하루가 밀려요 */
+export const localISO = d =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const addDaysISO = (iso, n = 0) => {
+  const [y, m, dd] = iso.split('-').map(Number);
+  return localISO(new Date(y, m - 1, dd + n));
 };
+export const todayISO = (offset = 0) => addDaysISO(localISO(new Date()), offset);
 
 const DEFAULT_DB = {
   tasks: [], projects: [], members: [], rituals: [], archive: [], trends: [],
@@ -205,6 +209,36 @@ class Store {
   migrate() {
     if (!this.db.config) this.db.config = {};
     if (!Array.isArray(this.db.guardLog)) this.db.guardLog = [];
+    /* 가중목 문서 정리: 시간대 버그로 생긴 같은 주차 중복 문서를 하나로 통합
+       (내용이 많은 것 → mt 최신 → id 순으로 대표를 뽑아 모든 클라이언트가 같은 결과) */
+    if (Array.isArray(this.db.rituals)) {
+      const monOf = iso => {
+        try {
+          const [y, m, d] = String(iso).split('-').map(Number);
+          const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() - (dt.getDay() + 6) % 7);
+          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        } catch { return String(iso); }
+      };
+      const score = r => { const d = r.data || {};
+        return (d.commitments || []).length * 10
+          + Object.values(d.leadWeek || {}).reduce((s, v) => s + (+v || 0), 0)
+          + Object.keys(d.lagMonth || {}).length + (d.evalNote ? 1 : 0); };
+      const pick = arr => [...arr].sort((a, b) =>
+        score(b) - score(a) || String(b.mt || '').localeCompare(String(a.mt || '')) || String(a.id).localeCompare(String(b.id)))[0];
+      const weeks = {};
+      this.db.rituals.filter(r => r.type === 'goals' && r.date).forEach(r => {
+        const k = monOf(r.date); (weeks[k] = weeks[k] || []).push(r);
+      });
+      const drop = new Set();
+      Object.entries(weeks).forEach(([k, arr]) => {
+        const keep = pick(arr);
+        keep.date = k; // 날짜를 해당 주 월요일로 정규화
+        arr.forEach(r => { if (r !== keep) drop.add(r.id); });
+      });
+      const cfgs = this.db.rituals.filter(r => r.type === 'goals-config');
+      if (cfgs.length > 1) { const keep = pick(cfgs); cfgs.forEach(r => { if (r !== keep) drop.add(r.id); }); }
+      if (drop.size) this.db.rituals = this.db.rituals.filter(r => !drop.has(r.id));
+    }
     // 노션 미러링 업무의 id를 전체 UUID 기반으로 통일 + 중복 id 복구 (구버전 12자리 id 충돌 해결)
     const seenIds = new Set();
     (this.db.tasks || []).forEach(t => {

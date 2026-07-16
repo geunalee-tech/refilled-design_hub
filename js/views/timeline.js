@@ -1,6 +1,6 @@
 /* timeline.js — 프로젝트 타임라인 v31
    일 단위 그리드 + 좌우 스크롤 캔버스 · 드래그 = 1일 = DAY_W px (정확한 마우스 추적) */
-import { store, uid, todayISO } from '../store.js';
+import { store, uid, todayISO, addDaysISO, localISO } from '../store.js';
 import { esc, toast, dday, STATUS, openModal, closeModal, $ } from '../ui.js';
 import { editTask, subTabs } from './tasks.js';
 
@@ -9,10 +9,7 @@ const LAB_W = 264;           // 왼쪽 라벨 열 너비
 let expanded = new Set();
 let lastScrollX = null;      // 렌더 간 스크롤 위치 유지 (null = 오늘로 이동)
 
-const addDays = (iso, n) => {
-  const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-};
+const addDays = (iso, n) => addDaysISO(iso, n);
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 
 export function renderTimeline(main) {
@@ -28,7 +25,7 @@ export function renderTimeline(main) {
   db.tasks.forEach(t => { if (t.due && t.due > hi) hi = t.due; });
   const rangeStart = lo.slice(0, 8) + '01';
   const hiD = new Date(hi + 'T00:00:00'); hiD.setMonth(hiD.getMonth() + 1, 0); // 그 달의 말일
-  const rangeEnd = hiD.toISOString().slice(0, 10);
+  const rangeEnd = localISO(hiD);
   const idx = iso => Math.round((new Date(iso + 'T00:00:00') - new Date(rangeStart + 'T00:00:00')) / 864e5);
   const totalDays = idx(rangeEnd) + 1;
   const W = totalDays * DAY_W;

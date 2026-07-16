@@ -1,5 +1,5 @@
 /* rituals.js — 반복 문서: 위클리 미팅록 · 가중목 · 디자인 펄스 · 금요 리포트 */
-import { store, uid, todayISO } from '../store.js';
+import { store, uid, todayISO, addDaysISO } from '../store.js';
 import { esc, openModal, closeModal, toast, fmtDate, $, copyText } from '../ui.js';
 import { editTask } from './tasks.js';
 import { ai } from '../ai.js';
@@ -272,8 +272,12 @@ ${v('#f-next').value}`;
    → ③ 후행지표 → ④ 이번 주 공약 (다음 주에 ①로 자동 이월)
    모든 입력은 자동 저장 · 팀 전체 공유
    ════════════════════════════════════════════════════════════ */
-const wAddDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-const mondayOf = iso => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.toISOString().slice(0, 10); };
+const wAddDays = (iso, n) => addDaysISO(iso, n);
+const mondayOf = iso => {
+  const [y, m, dd] = iso.split('-').map(Number);
+  const d = new Date(y, m - 1, dd);
+  return addDaysISO(iso, -((d.getDay() + 6) % 7));
+};
 const wigLabel = mon => {
   const d = new Date(mon + 'T00:00:00');
   const off = (new Date(d.getFullYear(), d.getMonth(), 1).getDay() + 6) % 7; // 1일의 요일(월=0)
