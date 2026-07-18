@@ -125,14 +125,14 @@
       ],
       "status": "req",
       "priority": "중간",
-      "requester": "노션 요청",
+      "requester": "김수희",
       "requestedAt": "2026-07-16",
       "due": "2026-07-23",
       "link": "https://app.notion.com/39ebd60b576280e599fff7e6cb1c220e",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-18T06:43:35.574Z"
+      "mt": "2026-07-18T06:45:50.396Z"
     },
     {
       "id": "nt_381bd60b576280cd8ef6ffd37e39d4de",
@@ -685,7 +685,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-18T06:43:56.978Z",
+  "updatedAt": "2026-07-18T06:45:50.396Z",
   "seeded": false,
   "docs": [],
   "meta": {
