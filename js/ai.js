@@ -4,6 +4,10 @@
 import { store } from './store.js';
 
 /* ── Google Gemini (aistudio.google.com 무료 키) ── */
+/* 모델 폴백 체인: 구글이 모델을 은퇴시켜도 자동으로 다음 모델을 시도 */
+const GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-3.1-flash', 'gemini-2.5-flash'];
+let geminiModelIdx = 0; // 성공한 모델을 기억해 다음 호출부터 바로 사용
+
 async function callGemini({ system, prompt, tools = null, maxTokens = 1500 }) {
   const key = store.settings.geminiKey;
   const body = {
@@ -12,13 +16,21 @@ async function callGemini({ system, prompt, tools = null, maxTokens = 1500 }) {
   };
   if (system) body.system_instruction = { parts: [{ text: system }] };
   if (tools) body.tools = [{ google_search: {} }]; // 웹 검색 요청 → Gemini 그라운딩으로 매핑
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) {
+
+  let res = null, lastErr = '';
+  for (let i = geminiModelIdx; i < GEMINI_MODELS.length; i++) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODELS[i]}:generateContent?key=${encodeURIComponent(key)}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.ok) { geminiModelIdx = i; break; }
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || 'Gemini API 오류 ' + res.status);
+    lastErr = err?.error?.message || ('Gemini API 오류 ' + res.status);
+    // 모델이 없거나 은퇴한 경우(404/미지원)만 다음 모델로 폴백, 그 외(키 오류 등)는 즉시 중단
+    const retirable = res.status === 404 || /no longer available|not found|not supported/i.test(lastErr);
+    if (!retirable) throw new Error(lastErr);
+    res = null;
   }
+  if (!res) throw new Error(lastErr || '사용 가능한 Gemini 모델을 찾지 못했어요');
   const data = await res.json();
   const out = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n').trim();
   if (!out) throw new Error('Gemini 응답이 비어 있어요' + (data.candidates?.[0]?.finishReason ? ` (${data.candidates[0].finishReason})` : ''));
