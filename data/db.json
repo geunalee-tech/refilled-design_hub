@@ -572,7 +572,7 @@
           {
             "id": "mrq0galbgurir",
             "member": "이근아",
-            "text": "스마트스토어 번들구성 썸네일 제작을 완료하여 교체를 요청한다.",
+            "text": "스마트스토어 번들구성 썸네일 제작을 완료한다.",
             "criteria": "",
             "leadId": "",
             "done": false,
@@ -585,7 +585,7 @@
         "lagMonth": {},
         "evalNote": ""
       },
-      "mt": "2026-07-18T06:53:50.424Z"
+      "mt": "2026-07-18T06:53:54.837Z"
     },
     {
       "id": "mrniseqf6bmnn",
@@ -710,7 +710,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-18T06:53:50.424Z",
+  "updatedAt": "2026-07-18T06:53:54.838Z",
   "seeded": false,
   "docs": [],
   "meta": {
