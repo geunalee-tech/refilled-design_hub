@@ -568,14 +568,24 @@
       "author": "",
       "createdAt": "2026-07-16T13:02:48.783Z",
       "data": {
-        "commitments": [],
+        "commitments": [
+          {
+            "id": "mrq0galbgurir",
+            "member": "이근아",
+            "text": "",
+            "criteria": "",
+            "leadId": "",
+            "done": false,
+            "reason": ""
+          }
+        ],
         "leadWeek": {
           "mrni3yyy8h5a1": 1
         },
         "lagMonth": {},
         "evalNote": ""
       },
-      "mt": "2026-07-18T06:47:23.776Z"
+      "mt": "2026-07-18T06:53:33.983Z"
     },
     {
       "id": "mrniseqf6bmnn",
@@ -700,7 +710,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-18T06:53:22.002Z",
+  "updatedAt": "2026-07-18T06:53:33.983Z",
   "seeded": false,
   "docs": [],
   "meta": {
