@@ -580,7 +580,7 @@
           },
           {
             "id": "mrq0h63i6qv88",
-            "member": "이근아",
+            "member": "김연우",
             "text": "",
             "criteria": "",
             "leadId": "",
@@ -603,7 +603,7 @@
         "lagMonth": {},
         "evalNote": ""
       },
-      "mt": "2026-07-18T06:54:15.974Z"
+      "mt": "2026-07-18T06:54:17.630Z"
     },
     {
       "id": "mrniseqf6bmnn",
@@ -728,7 +728,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-18T06:54:15.975Z",
+  "updatedAt": "2026-07-18T06:54:17.630Z",
   "seeded": false,
   "docs": [],
   "meta": {
