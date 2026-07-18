@@ -59,8 +59,23 @@ function syncBadge() {
 store.onChange(syncBadge);
 window.addEventListener('hashchange', route);
 
+/* 구글 로그인 상태 표시 (hub_u 쿠키 = 로그인 사용자 정보) */
+function authBox() {
+  const box = $('#auth-box');
+  if (!box) return;
+  const raw = document.cookie.split(/;\s*/).find(c => c.startsWith('hub_u='));
+  if (!raw) return; // 게이트 미설정 or 로컬 테스트 → 표시 안 함
+  try {
+    const u = JSON.parse(decodeURIComponent(raw.slice(6)));
+    box.hidden = false;
+    box.innerHTML = `<span class="au-name" title="${u.e || ''}">👤 ${u.n || u.e}</span>
+      <a href="/api/auth/logout" class="au-out">로그아웃</a>`;
+  } catch {}
+}
+
 (async function boot() {
   store.seedIfEmpty();
+  authBox();
   syncBadge();
   route();
   if (store.hasRemote()) {

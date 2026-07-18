@@ -261,13 +261,24 @@ function editProjectFlow(pid, main) {
       <div id="pf-preview" class="np-preview"></div>
     </div>
     <div class="field"><label>하위 업무 마감일</label><div id="pf-items"></div></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" data-close>취소</button>
-      <button class="btn primary" id="pf-save">저장</button>
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center">
+      <button class="btn sm danger" id="pf-del">프로젝트 삭제</button>
+      <span style="display:flex;gap:8px">
+        <button class="btn" data-close>취소</button>
+        <button class="btn primary" id="pf-save">저장</button>
+      </span>
     </div>
   `, body => {
     const q = sel => body.querySelector(sel);
     let shifted = 0;
+
+    q('#pf-del').onclick = () => {
+      const cnt = db.tasks.filter(t => t.project === pid).length;
+      if (!confirm(`"${p.name}" 프로젝트를 삭제할까요?${cnt ? `\n연결된 업무 ${cnt}건은 '기타'로 남아요.` : ''}`)) return;
+      db.projects = db.projects.filter(x => x.id !== pid);
+      store.save(); closeModal(); renderTimeline(main);
+      toast('프로젝트를 삭제했어요');
+    };
 
     /* 미리보기 범위: 기간·마감을 모두 포함 + 여유 2일 */
     const draw = () => {

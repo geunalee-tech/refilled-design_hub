@@ -32,6 +32,10 @@ a{color:inherit;text-decoration:none}
 .nv-ic{width:16px;text-align:center;opacity:.8;font-size:12px}
 .sidebar-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px}
 .sync-badge{font-family:var(--mono);font-size:10.5px;padding:5px 9px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--mist)}
+.auth-box{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--mist);padding:2px 2px 0}
+.auth-box .au-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.auth-box .au-out{color:#8FA6C4;text-decoration:none;font-size:10.5px;border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:2px 7px;flex:none}
+.auth-box .au-out:hover{background:rgba(255,255,255,.1);color:#fff}
 .sync-badge.on{background:rgba(0,109,226,.35);color:#AFD3F9}
 .sync-badge.err{background:rgba(179,64,46,.35);color:#F0C4B8}
 .settings-link{font-size:13px;color:#A6A6A6;padding:7px 10px;border-radius:8px}

@@ -387,10 +387,9 @@
       "id": "p-treatment",
       "name": "[리브랜딩] 트리트먼트",
       "color": "#3B7A8A",
-      "start": "2026-07-01",
+      "start": "2026-03-03",
       "end": "2026-07-31",
-      "owner": "m-geuna",
-      "mt": "2026-07-18T07:34:12.830Z"
+      "owner": "m-geuna"
     },
     {
       "id": "p-effector",
@@ -729,7 +728,7 @@
   "trends": [],
   "config": {},
   "guardLog": [],
-  "updatedAt": "2026-07-18T07:45:39.587Z",
+  "updatedAt": "2026-07-18T07:01:44.094Z",
   "seeded": false,
   "docs": [],
   "meta": {

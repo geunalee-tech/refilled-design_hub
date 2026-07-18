@@ -1,5 +1,5 @@
 /* studio.js — AI 스튜디오: 프롬프트 빌더(3타입·이미지 참조) · 메일 포맷 · 트렌드 리서치 */
-import { store, uid, todayISO } from '../store.js';
+import { store } from '../store.js';
 import { esc, toast, copyText, $ } from '../ui.js';
 import { ai, SOUL_GUIDE } from '../ai.js';
 
@@ -46,11 +46,10 @@ export function renderStudio(main) {
   <div class="tabs">
     <button data-tab="prompt" class="${tab === 'prompt' ? 'active' : ''}">프롬프트 빌더</button>
     <button data-tab="mail" class="${tab === 'mail' ? 'active' : ''}">메일 포맷</button>
-    <button data-tab="trend" class="${tab === 'trend' ? 'active' : ''}">트렌드 리서치</button>
   </div>
   <div id="studio-body"></div>`;
   main.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; renderStudio(main); });
-  ({ prompt: promptTab, mail: mailTab, trend: trendTab }[tab])($('#studio-body'));
+  ({ prompt: promptTab, mail: mailTab }[tab] || promptTab)($('#studio-body'));
 }
 
 /* ── 프롬프트 빌더 ── */
@@ -185,42 +184,3 @@ function mailTab(root) {
   };
   $('#ml-copy').onclick = e => lastMail ? copyText(lastMail, e.target) : toast('먼저 메일을 생성해주세요');
 }
-
-/* ── 트렌드 리서치 ── */
-function trendTab(root) {
-  const trends = store.db.trends.slice().reverse();
-  root.innerHTML = `
-  <div class="card" style="margin-bottom:18px"><div class="card-b">
-    <label style="font-size:11.5px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px">키워드로 최신 비주얼 트렌드 조사 (웹 검색 기반 · 한도 초과 시 지식 기반으로 자동 전환)</label>
-    <div class="search-big"><input id="tr-q" placeholder="예: 뷰티 기획세트 단상자, 클린뷰티 패키지, 유리 질감 그래픽">
-      <button class="btn primary" id="tr-go">✦ 조사</button></div>
-    <div class="ai-note" style="margin-top:8px">웹 검색(그라운딩)은 Gemini 무료 한도가 별도로 작아요. 초과되면 자동으로 웹 검색 없이 정리하고, 리포트 상단에 표시돼요. 한도는 매일 초기화돼요.</div>
-  </div></div>
-  <div id="tr-list">${trends.map(t => trendCard(t)).join('') || '<div class="empty">저장된 트렌드 리포트가 없어요</div>'}</div>`;
-  $('#tr-go').onclick = async e => {
-    const q = $('#tr-q').value.trim();
-    if (!q) return toast('키워드를 입력해주세요', true);
-    const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 조사 중 (30초 내외)';
-    try {
-      const body = await ai.researchTrend(q);
-      store.db.trends.push({ id: uid(), q, body, date: todayISO(), author: store.settings.userName });
-      store.save(); renderStudio(document.querySelector('#main'));
-      toast('트렌드 리포트를 저장했어요');
-    } catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = '✦ 조사'; }
-  };
-  root.querySelectorAll('[data-tdel]').forEach(b => b.onclick = () => {
-    store.db.trends = store.db.trends.filter(t => t.id !== b.dataset.tdel);
-    store.save(); renderStudio(document.querySelector('#main'));
-  });
-  root.querySelectorAll('[data-tcp]').forEach(b => b.onclick = e => {
-    const t = store.db.trends.find(x => x.id === b.dataset.tcp);
-    if (t) copyText(`[트렌드 리서치] ${t.q} (${t.date})\n\n${t.body}`, e.target);
-  });
-}
-const trendCard = t => `<div class="trend-item">
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <h4>${esc(t.q)}</h4>
-    <span style="display:flex;gap:8px;align-items:center"><span class="mono muted">${t.date}</span>
-    <button class="btn sm" data-tcp="${t.id}">복사</button>
-    <button class="btn sm danger" data-tdel="${t.id}">삭제</button></span></div>
-  <div class="trend-body" style="white-space:pre-wrap">${esc(t.body)}</div></div>`;
