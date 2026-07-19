@@ -163,8 +163,8 @@
       "project": "mrn337n50r5p7",
       "assignees": [
         "m-geuna",
-        "m-yeonwoo",
-        "m-minhyeon"
+        "mrrby5mc4wsu9",
+        "mrrby8utn2ynd"
       ],
       "status": "doing",
       "priority": "중간",
@@ -174,7 +174,8 @@
       "link": "https://app.notion.com/39cbd60b5762807bb336ec7452ff2619",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z"
+      "createdAt": "2026-07-16T05:40:14.000Z",
+      "mt": "2026-07-19T05:03:35.047Z"
     },
     {
       "id": "nt_39cbd60b5762800796cbe8d75f636945",
@@ -752,7 +753,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-19T05:03:32.097Z",
+  "updatedAt": "2026-07-19T05:03:35.047Z",
   "seeded": false,
   "docs": [],
   "meta": {
