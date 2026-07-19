@@ -103,7 +103,7 @@
       "title": "택배박스/테이프 디자인",
       "project": "mrn2swe6yp3b1",
       "assignees": [
-        "m-yeonwoo"
+        "mrrby5mc4wsu9"
       ],
       "status": "doing",
       "priority": "중간",
@@ -113,7 +113,8 @@
       "link": "https://app.notion.com/390bd60b57628018ab42c22acd972aec",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z"
+      "createdAt": "2026-07-16T05:40:14.000Z",
+      "mt": "2026-07-19T05:03:32.096Z"
     },
     {
       "id": "nt_39ebd60b576280e599fff7e6cb1c220e",
@@ -751,7 +752,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-19T05:03:27.983Z",
+  "updatedAt": "2026-07-19T05:03:32.097Z",
   "seeded": false,
   "docs": [],
   "meta": {
