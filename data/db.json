@@ -188,8 +188,8 @@
       "title": "[올리브영] 산리오 2종 상세페이지 제작 요청",
       "project": "p-sanrio2",
       "assignees": [
-        "mrrby5mc4wsu9",
-        "mrrby8utn2ynd"
+        "mrrc1k2kfoh4a",
+        "mrrc1mw73z8xp"
       ],
       "status": "req",
       "priority": "중간",
@@ -200,7 +200,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:03:25.836Z"
+      "mt": "2026-07-19T05:06:01.514Z"
     },
     {
       "id": "nt_39ebd60b576280d4bad6f522d093d26f",
@@ -759,7 +759,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-19T05:05:59.094Z",
+  "updatedAt": "2026-07-19T05:06:01.514Z",
   "seeded": false,
   "docs": [],
   "meta": {
