@@ -336,23 +336,25 @@ class Store {
     if (!hook) return;
     const appUrl = location.origin + location.pathname + '#/tasks/requests';
     const proj = this.projectName(t.project);
+    // 노션 알림처럼 제목에 [프로젝트] 프리픽스 (이미 [로 시작하면 그대로)
+    const title = (t.project && proj !== '기타' && !t.title.trim().startsWith('[') ? `[${proj}] ` : '') + t.title;
     const blocks = [
       { type: 'section', text: { type: 'mrkdwn', text: ':inbox_tray: 새 요청 업무가 등록됐어요 <!subteam^S06BYJ0KS5T|@디자인팀-ct>' } },
-      { type: 'header', text: { type: 'plain_text', text: t.title.slice(0, 148), emoji: true } },
+      { type: 'header', text: { type: 'plain_text', text: title.slice(0, 148), emoji: true } },
       { type: 'section', fields: [
-        { type: 'mrkdwn', text: `*프로젝트:* ${proj}` },
         { type: 'mrkdwn', text: `*기획자·요청자:* ${mentionizeNames(t.requester) || '미기재'}` },
+        { type: 'mrkdwn', text: `*우선순위:* ${t.priority || '중간'}` },
         { type: 'mrkdwn', text: `*요청일:* ${t.requestedAt || '-'}` },
         { type: 'mrkdwn', text: `*마감일:* ${t.due || '미정'}` },
-        { type: 'mrkdwn', text: `*우선순위:* ${t.priority || '중간'}` },
       ]},
       ...(t.notes ? [{ type: 'section', text: { type: 'mrkdwn', text: `*메모:* ${t.notes.slice(0, 500)}` } }] : []),
       { type: 'actions', elements: [
-        ...(t.link ? [{ type: 'button', text: { type: 'plain_text', text: '🔗 작업 링크 바로가기', emoji: true }, url: t.link }] : []),
+        ...(t.link ? [{ type: 'button', text: { type: 'plain_text', text: '📋 기획안 바로가기', emoji: true }, url: t.link }] : []),
+        ...(t.files?.length && t.files[0].url ? [{ type: 'button', text: { type: 'plain_text', text: `📎 첨부 파일${t.files.length > 1 ? ` (${t.files.length}개)` : ''}`, emoji: true }, url: t.files[0].url }] : []),
         { type: 'button', text: { type: 'plain_text', text: '업무 보드에서 확인', emoji: true }, url: appUrl }
       ]}
     ];
-    const fallback = `📥 새 요청 업무: ${t.title} (${t.requester || '요청'} · 마감 ${t.due || '미정'})`;
+    const fallback = `📥 새 요청 업무: ${title} (${t.requester || '요청'} · 마감 ${t.due || '미정'})`;
     this.notifySlack(fallback, blocks).catch(() => {});
   }
 
