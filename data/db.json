@@ -249,7 +249,7 @@
       "project": "mrn2swe6yp3b1",
       "assignees": [
         "m-geuna",
-        "mrrby5mc4wsu9"
+        "mrrc1k2kfoh4a"
       ],
       "status": "confirm",
       "priority": "중간",
@@ -260,7 +260,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:03:46.342Z"
+      "mt": "2026-07-19T05:06:20.079Z"
     },
     {
       "id": "nt_39ebd60b57628025897dd6fbeb84375b",
@@ -759,7 +759,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-19T05:06:17.409Z",
+  "updatedAt": "2026-07-19T05:06:20.079Z",
   "seeded": false,
   "docs": [],
   "meta": {
