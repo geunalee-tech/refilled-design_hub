@@ -5,7 +5,7 @@ import { renderTimeline } from './timeline.js';
 import { SLACK_NAME_MAP } from '../slackmap.js';
 
 const ORDER = ['req', 'doing', 'confirm'];
-const MIN_LEAD_BDAYS = 2;   // 요청→마감 최소 영업일
+const MIN_LEAD_BDAYS = 3;   // 요청→마감 최소 영업일
 const OVERLOAD_LIMIT = 3;   // 같은 마감일 경고 기준
 
 function bizDays(fromISO, toISO) {
@@ -397,7 +397,7 @@ export function editTask(id, isRequest = false, preset = {}) {
 
       /* ── 요청 업무 가드레일 (신규 등록 시) ── */
       if (!id && data.kind === 'request') {
-        // 1) 리드타임 하드 블록: 요청일→마감일 영업일 2일 미만이면 등록 불가
+        // 1) 리드타임 하드 블록: 요청일→마감일 영업일 3일 미만이면 등록 불가
         if (data.due && bizDays(data.requestedAt, data.due) < MIN_LEAD_BDAYS) {
           // 반려 기록 (월간 트래킹용) — 같은 제목·마감 조합은 하루 1회만
           const dup = store.db.guardLog.some(g => g.title === data.title && g.due === data.due && g.at?.slice(0, 10) === todayISO());
