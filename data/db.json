@@ -728,8 +728,17 @@
   "archive": [],
   "trends": [],
   "config": {},
-  "guardLog": [],
-  "updatedAt": "2026-07-18T08:06:23.015Z",
+  "guardLog": [
+    {
+      "type": "lead_block",
+      "at": "2026-07-19T03:58:33.380Z",
+      "title": "ㅇㅇㅇ",
+      "requester": "",
+      "due": "2026-07-20",
+      "leadDays": 1
+    }
+  ],
+  "updatedAt": "2026-07-19T03:58:33.381Z",
   "seeded": false,
   "docs": [],
   "meta": {
