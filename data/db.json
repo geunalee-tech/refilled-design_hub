@@ -228,7 +228,7 @@
       "title": "[북미 아마존] 썸네일 및 상세페이지 디자인 요청",
       "project": "",
       "assignees": [
-        "mrrby8utn2ynd"
+        "mrrc1mw73z8xp"
       ],
       "status": "doing",
       "priority": "중간",
@@ -239,7 +239,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:03:39.891Z"
+      "mt": "2026-07-19T05:06:14.576Z"
     },
     {
       "id": "nt_390bd60b576280d0aeb1d773c61e9812",
@@ -759,7 +759,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-19T05:06:11.907Z",
+  "updatedAt": "2026-07-19T05:06:14.576Z",
   "seeded": false,
   "docs": [],
   "meta": {
