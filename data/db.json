@@ -284,8 +284,8 @@
       "project": "mrn36xqg6b5em",
       "assignees": [
         "m-geuna",
-        "m-yeonwoo",
-        "m-minhyeon"
+        "mrrby5mc4wsu9",
+        "mrrby8utn2ynd"
       ],
       "status": "doing",
       "priority": "높음",
@@ -296,7 +296,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-16T08:11:01.003Z"
+      "mt": "2026-07-19T05:03:37.496Z"
     },
     {
       "id": "nt_396bd60b5762809faeb0feb9ef5345b4",
@@ -753,7 +753,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-19T05:03:35.047Z",
+  "updatedAt": "2026-07-19T05:03:37.496Z",
   "seeded": false,
   "docs": [],
   "meta": {
