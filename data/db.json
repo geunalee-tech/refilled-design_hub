@@ -406,16 +406,6 @@
       "id": "m-geuna",
       "name": "이근아",
       "role": "팀장"
-    },
-    {
-      "id": "m-yeonwoo",
-      "name": "김연우",
-      "role": "시니어"
-    },
-    {
-      "id": "m-minhyeon",
-      "name": "방민현",
-      "role": "인턴"
     }
   ],
   "rituals": [
@@ -746,7 +736,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-19T04:46:03.752Z",
+  "updatedAt": "2026-07-19T05:03:03.742Z",
   "seeded": false,
   "docs": [],
   "meta": {
