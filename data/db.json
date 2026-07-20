@@ -152,12 +152,12 @@
       "priority": "보류",
       "requester": "강다현",
       "requestedAt": "2026-06-16",
-      "due": "2026-07-20",
+      "due": "2026-08-17",
       "link": "https://app.notion.com/381bd60b576280cd8ef6ffd37e39d4de",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-20T00:44:14.195Z"
+      "mt": "2026-07-20T01:51:06.540Z"
     },
     {
       "id": "nt_39cbd60b5762807bb336ec7452ff2619",
@@ -773,7 +773,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T01:50:52.020Z",
+  "updatedAt": "2026-07-20T01:51:06.540Z",
   "seeded": false,
   "docs": [],
   "meta": {
