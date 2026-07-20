@@ -809,7 +809,20 @@
       "mt": "2026-07-18T06:53:20.049Z"
     }
   ],
-  "archive": [],
+  "archive": [
+    {
+      "id": "mrsu4m8999l48",
+      "title": "클렌저 용기 발주파일",
+      "url": "https://drive.google.com/open?id=1hJu5FyyTEOlCXHBlhsNm8NnOZoOrxTXN&usp=drive_fs",
+      "project": "",
+      "version": "final",
+      "date": "2026-07-20",
+      "tags": "클렌저, 발주파일",
+      "owner": "m-geuna",
+      "notes": "",
+      "mt": "2026-07-20T06:19:50.025Z"
+    }
+  ],
   "trends": [],
   "config": {},
   "guardLog": [
@@ -838,7 +851,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:18:11.446Z",
+  "updatedAt": "2026-07-20T06:19:50.025Z",
   "seeded": false,
   "docs": [],
   "meta": {
