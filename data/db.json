@@ -371,7 +371,9 @@
       "kind": "request",
       "title": "[명함 발주] 7월 신규입사자 명함 발주",
       "project": "",
-      "assignees": [],
+      "assignees": [
+        "mrrc1mw73z8xp"
+      ],
       "status": "req",
       "priority": "중간",
       "requester": "권정은",
@@ -380,7 +382,8 @@
       "link": "https://app.notion.com/p/7-3a3bd60b5762800a8f72d64b13f3f0cd",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록",
-      "createdAt": "2026-07-20T05:15:06.642Z"
+      "createdAt": "2026-07-20T05:15:06.642Z",
+      "mt": "2026-07-20T07:02:26.686Z"
     },
     {
       "id": "nt_3a3bd60b5762803cbe8bf10d7b277544",
@@ -862,7 +865,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:59:11.467Z",
+  "updatedAt": "2026-07-20T07:02:26.686Z",
   "seeded": false,
   "docs": [],
   "meta": {
