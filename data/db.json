@@ -654,7 +654,7 @@
             "member": "김연우",
             "text": "실제 채널에 적용된 모습을 목업으로 제작 2차",
             "criteria": "7/24(금)까지 그래픽 도출 장표 정리하여 팀 내 공유",
-            "leadId": "",
+            "leadId": "mrni3yyyhm5kn",
             "done": false,
             "reason": ""
           },
@@ -688,7 +688,7 @@
         },
         "evalNote": ""
       },
-      "mt": "2026-07-20T06:24:52.598Z"
+      "mt": "2026-07-20T06:24:54.474Z"
     },
     {
       "id": "mrniseqf6bmnn",
@@ -851,7 +851,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:24:52.598Z",
+  "updatedAt": "2026-07-20T06:24:54.474Z",
   "seeded": false,
   "docs": [],
   "meta": {
