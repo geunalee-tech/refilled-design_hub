@@ -46,7 +46,7 @@
       "title": "[IG] 7월 OY 클렌저 런칭 스토리",
       "project": "",
       "assignees": [
-        "mrrc1mw73z8xp"
+        "m-minhyeon"
       ],
       "status": "req",
       "priority": "중간",
@@ -57,7 +57,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/IG-7-OY-39fbd60b57628016a77cfb60222d290c",
       "createdAt": "2026-07-16T01:59:16.377Z",
-      "mt": "2026-07-19T05:05:56.439Z"
+      "mt": "2026-07-16T08:13:02.618Z"
     },
     {
       "id": "nt_39fbd60b5762807c9c19e0b5314ac7a7",
@@ -66,7 +66,7 @@
       "title": "[브랜디드] 범용 브랜드 소개서",
       "project": "mrn2swe6yp3b1",
       "assignees": [
-        "mrrc1k2kfoh4a"
+        "m-yeonwoo"
       ],
       "status": "req",
       "priority": "중간",
@@ -76,8 +76,7 @@
       "link": "https://www.figma.com/deck/vXLZk1EAWrrFXp3Kt8PLga",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/39fbd60b5762807c9c19e0b5314ac7a7",
-      "createdAt": "2026-07-16T05:33:51.430Z",
-      "mt": "2026-07-19T05:06:03.661Z"
+      "createdAt": "2026-07-16T05:33:51.430Z"
     },
     {
       "id": "nt_384bd60b576280ddabbdc18ac779709b",
@@ -85,9 +84,7 @@
       "kind": "request",
       "title": "부스터 미니 용기 & 단상자",
       "project": "",
-      "assignees": [
-        "mrrc1k2kfoh4a"
-      ],
+      "assignees": [],
       "status": "confirm",
       "priority": "중간",
       "requester": "노션 요청",
@@ -96,8 +93,7 @@
       "link": "https://app.notion.com/384bd60b576280ddabbdc18ac779709b",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:17.409Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_390bd60b57628018ab42c22acd972aec",
@@ -106,7 +102,7 @@
       "title": "택배박스/테이프 디자인",
       "project": "mrn2swe6yp3b1",
       "assignees": [
-        "mrrc1k2kfoh4a"
+        "m-yeonwoo"
       ],
       "status": "doing",
       "priority": "중간",
@@ -116,8 +112,7 @@
       "link": "https://app.notion.com/390bd60b57628018ab42c22acd972aec",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:06.235Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_39ebd60b576280e599fff7e6cb1c220e",
@@ -146,18 +141,17 @@
       "title": "[올리브영] 아이래쉬 ver3(뷰러 기획세트) 단상자 디자인",
       "project": "p-eyelashv3",
       "assignees": [
-        "mrrc1k2kfoh4a"
+        "m-yeonwoo"
       ],
       "status": "confirm",
       "priority": "보류",
       "requester": "강다현",
       "requestedAt": "2026-06-16",
-      "due": "2026-07-20",
+      "due": "2026-07-10",
       "link": "https://app.notion.com/381bd60b576280cd8ef6ffd37e39d4de",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-20T00:44:14.195Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_39cbd60b5762807bb336ec7452ff2619",
@@ -167,8 +161,8 @@
       "project": "mrn337n50r5p7",
       "assignees": [
         "m-geuna",
-        "mrrc1k2kfoh4a",
-        "mrrc1mw73z8xp"
+        "m-yeonwoo",
+        "m-minhyeon"
       ],
       "status": "doing",
       "priority": "중간",
@@ -178,8 +172,7 @@
       "link": "https://app.notion.com/39cbd60b5762807bb336ec7452ff2619",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:08.995Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_39cbd60b5762800796cbe8d75f636945",
@@ -188,8 +181,8 @@
       "title": "[올리브영] 산리오 2종 상세페이지 제작 요청",
       "project": "p-sanrio2",
       "assignees": [
-        "mrrc1k2kfoh4a",
-        "mrrc1mw73z8xp"
+        "m-yeonwoo",
+        "m-minhyeon"
       ],
       "status": "req",
       "priority": "중간",
@@ -199,8 +192,7 @@
       "link": "https://app.notion.com/39cbd60b5762800796cbe8d75f636945",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:01.514Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_39ebd60b576280d4bad6f522d093d26f",
@@ -228,7 +220,7 @@
       "title": "[북미 아마존] 썸네일 및 상세페이지 디자인 요청",
       "project": "",
       "assignees": [
-        "mrrc1mw73z8xp"
+        "m-minhyeon"
       ],
       "status": "doing",
       "priority": "중간",
@@ -238,8 +230,7 @@
       "link": "https://app.notion.com/39ebd60b5762800d86b8f7fd7da7e4a1",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:14.576Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_390bd60b576280d0aeb1d773c61e9812",
@@ -249,7 +240,7 @@
       "project": "mrn2swe6yp3b1",
       "assignees": [
         "m-geuna",
-        "mrrc1k2kfoh4a"
+        "m-yeonwoo"
       ],
       "status": "confirm",
       "priority": "중간",
@@ -259,8 +250,7 @@
       "link": "https://app.notion.com/390bd60b576280d0aeb1d773c61e9812",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:20.079Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_39ebd60b57628025897dd6fbeb84375b",
@@ -269,7 +259,7 @@
       "title": "[일본시딩용] 루미키트 부자재 디자인 요청",
       "project": "",
       "assignees": [
-        "mrrc1mw73z8xp"
+        "m-minhyeon"
       ],
       "status": "req",
       "priority": "중간",
@@ -279,8 +269,7 @@
       "link": "https://app.notion.com/39ebd60b57628025897dd6fbeb84375b",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:05:59.094Z"
+      "createdAt": "2026-07-16T05:40:14.000Z"
     },
     {
       "id": "nt_390bd60b57628021a7f6d30960ce052f",
@@ -290,8 +279,8 @@
       "project": "mrn36xqg6b5em",
       "assignees": [
         "m-geuna",
-        "mrrc1k2kfoh4a",
-        "mrrc1mw73z8xp"
+        "m-yeonwoo",
+        "m-minhyeon"
       ],
       "status": "doing",
       "priority": "높음",
@@ -302,7 +291,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:11.906Z"
+      "mt": "2026-07-16T08:11:01.003Z"
     },
     {
       "id": "nt_396bd60b5762809faeb0feb9ef5345b4",
@@ -373,7 +362,7 @@
       "color": "#C2557E",
       "start": "2026-07-01",
       "end": "2026-07-30",
-      "owner": "mrrc1k2kfoh4a",
+      "owner": "m-yeonwoo",
       "mt": "2026-07-16T08:11:31.641Z"
     },
     {
@@ -382,7 +371,7 @@
       "color": "#A34A4A",
       "start": "2026-07-01",
       "end": "2026-07-31",
-      "owner": "mrrc1k2kfoh4a",
+      "owner": "m-yeonwoo",
       "mt": "2026-07-16T08:11:41.948Z"
     },
     {
@@ -398,10 +387,9 @@
       "id": "p-treatment",
       "name": "[리브랜딩] 트리트먼트",
       "color": "#3B7A8A",
-      "start": "2026-07-01",
+      "start": "2026-03-03",
       "end": "2026-07-31",
-      "owner": "m-geuna",
-      "mt": "2026-07-18T07:34:12.830Z"
+      "owner": "m-geuna"
     },
     {
       "id": "p-effector",
@@ -419,16 +407,14 @@
       "role": "팀장"
     },
     {
-      "id": "mrrc1k2kfoh4a",
+      "id": "m-yeonwoo",
       "name": "김연우",
-      "role": "",
-      "mt": "2026-07-19T05:05:47.996Z"
+      "role": "시니어"
     },
     {
-      "id": "mrrc1mw73z8xp",
+      "id": "m-minhyeon",
       "name": "방민현",
-      "role": "",
-      "mt": "2026-07-19T05:05:51.655Z"
+      "role": "인턴"
     }
   ],
   "rituals": [
@@ -531,7 +517,7 @@
             "criteria": "7/15(수)까지 1차 시안 완성 후 팀 내 피드백 / 7/17(금)까지 최종 안으로 단품 품목 썸네일 제작",
             "leadId": "mrni3yyyale7e",
             "done": false,
-            "reason": "리소스 배분 문제로 올리브영 외 작업이 진행되지 않음"
+            "reason": ""
           },
           {
             "id": "mrniqmczor3sm",
@@ -572,7 +558,7 @@
         },
         "evalNote": ""
       },
-      "mt": "2026-07-20T00:44:59.267Z"
+      "mt": "2026-07-18T06:52:27.441Z"
     },
     {
       "id": "mrnirg0fdi35d",
@@ -741,25 +727,8 @@
   "archive": [],
   "trends": [],
   "config": {},
-  "guardLog": [
-    {
-      "type": "lead_block",
-      "at": "2026-07-19T03:58:33.380Z",
-      "title": "ㅇㅇㅇ",
-      "requester": "",
-      "due": "2026-07-20",
-      "leadDays": 1
-    },
-    {
-      "type": "lead_block",
-      "at": "2026-07-19T04:07:47.163Z",
-      "title": "ㅇㄹㅇㄹ",
-      "requester": "",
-      "due": "2026-07-21",
-      "leadDays": 2
-    }
-  ],
-  "updatedAt": "2026-07-20T00:44:59.268Z",
+  "guardLog": [],
+  "updatedAt": "2026-07-18T07:01:44.094Z",
   "seeded": false,
   "docs": [],
   "meta": {
