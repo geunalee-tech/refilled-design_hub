@@ -430,7 +430,7 @@
       "title": "[시코르 집기 제작] 점포별 시안 제작 및 집기 발주 요청",
       "project": "",
       "assignees": [],
-      "status": "req",
+      "status": "doing",
       "priority": "높음",
       "requester": "이경윤",
       "requestedAt": "2026-07-20",
@@ -438,7 +438,8 @@
       "link": "https://www.figma.com/board/NFlhhhc65CKrUq0qV0BHUF/%EC%8B%9C%EC%BD%94%EB%A5%B4-%EC%A7%91%EA%B8%B0?node-id=30-46&t=UKfAwkEuQLgs5H8x-0",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/3a3bd60b576280328876de1f67ef9532",
-      "createdAt": "2026-07-20T08:06:00.368Z"
+      "createdAt": "2026-07-20T08:06:00.368Z",
+      "mt": "2026-07-20T08:06:17.568Z"
     }
   ],
   "projects": [
@@ -903,7 +904,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T08:06:00.592Z",
+  "updatedAt": "2026-07-20T08:06:17.568Z",
   "seeded": false,
   "docs": [],
   "meta": {
