@@ -38,10 +38,19 @@ function syncBadge() {
   b.className = 'sync-badge ' + cls;
   b.title = store.status === 'error'
     ? `오류: ${store.lastError || '알 수 없음'} — 클릭하면 다시 동기화해요`
-    : (store.hasRemote() ? '클릭하면 최신 데이터를 다시 불러와요' : '설정에서 GitHub를 연결하면 팀 공유가 켜져요');
-  b.style.cursor = store.hasRemote() ? 'pointer' : 'default';
+    : store.hasRemote() ? '클릭하면 최신 데이터를 다시 불러와요'
+    : store.serverDetail ? `자동 동기화 안 되는 이유: ${store.serverDetail}`
+    : '설정에서 GitHub를 연결하면 팀 공유가 켜져요';
+  b.style.cursor = 'pointer';
   b.onclick = async () => {
-    if (!store.hasRemote()) return toast('설정에서 GitHub 저장소·토큰을 먼저 연결해주세요', true);
+    if (!store.hasRemote()) {
+      // 진단 모드: 왜 로컬 모드인지 알려주고, 서버 상태를 다시 확인해요
+      toast(store.serverDetail ? `자동 동기화 안 되는 이유: ${store.serverDetail}` : '서버 동기화 상태를 다시 확인하는 중…', !!store.serverDetail);
+      store.serverMode = null;          // 재판별 허용
+      const ok = await store.pull();
+      if (ok) { toast('동기화가 연결됐어요 — 최신 데이터예요'); window.dispatchEvent(new Event('hashchange')); }
+      return;
+    }
     toast('다시 동기화하는 중…');
     await store.push();               // 충돌 시 자동 병합 후 재시도
     if (store.status === 'error') {

@@ -31,7 +31,9 @@ export function renderSettings(main) {
       <div style="display:flex;gap:8px">
         <button class="btn primary" id="s-sync-save">저장 후 연결 테스트</button>
         <button class="btn" id="s-pull">지금 불러오기</button>
-        <button class="btn" id="s-push">지금 올리기</button></div>
+        <button class="btn" id="s-push">지금 올리기</button>
+        <button class="btn" id="s-diag">동기화 진단</button></div>
+      <pre id="s-diag-out" style="display:none;background:#F6F7F9;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.7;white-space:pre-wrap;margin-top:8px"></pre>
       <div class="ai-note"><b>이제 개인 토큰은 선택사항이에요.</b> 구글 로그인이 켜진 배포에서는 서버가 팀 공용 토큰으로 자동 동기화해서, 이 칸을 비워둬도 팀 동기화가 됩니다. 직접 넣을 경우 이 저장소 하나에 <b>Contents: Read and write</b> 권한만 주면 돼요.</div>
     </div></div>
 
@@ -89,6 +91,23 @@ export function renderSettings(main) {
   };
   $('#s-pull').onclick = async () => { saveSync(); await store.pull(); toast('최신 데이터를 불러왔어요'); window.dispatchEvent(new Event('hashchange')); };
   $('#s-push').onclick = async () => { saveSync(); await store.push(); toast(store.status === 'synced' ? '팀 저장소에 올렸어요' : '업로드 실패', store.status !== 'synced'); };
+  $('#s-diag').onclick = async () => {
+    const box = $('#s-diag-out'); box.style.display = 'block'; box.textContent = '진단 중…';
+    const out = [];
+    try {
+      const r = await fetch('/api/db');
+      const j = await r.json().catch(() => ({}));
+      out.push(`① 서버 동기화 (/api/db): ${r.ok ? '✅ 정상' : '⛔ ' + r.status + (j.error ? ' — ' + j.error : '')}`);
+    } catch (e) { out.push('① 서버 동기화 (/api/db): ⛔ 연결 실패 — ' + e.message); }
+    out.push(`② 브라우저 토큰(레거시): ${store.legacyRemote() ? '설정됨 (' + store.settings.repo + ')' : '없음 (서버 동기화 사용 시 불필요)'}`);
+    if (store.legacyRemote()) {
+      try { const r = await fetch(store.ghUrl(), { headers: store.ghHeaders() }); out.push(`③ GitHub 직접 접근: ${r.ok ? '✅ 정상' : '⛔ ' + r.status + (r.status === 401 ? ' (토큰 만료/오류)' : '')}`); }
+      catch { out.push('③ GitHub 직접 접근: ⛔ 연결 실패 (네트워크/확장프로그램)'); }
+    }
+    out.push(`④ 현재 모드: ${store.serverMode === true ? '서버 동기화' : store.serverMode === false ? (store.legacyRemote() ? '레거시(브라우저 토큰)' : '로컬') : '미확인'} · 상태: ${store.status}${store.lastError ? ' · 마지막 오류: ' + store.lastError : ''}`);
+    out.push(`⑤ 멤버 수: ${store.db.members.length}명 (${store.db.members.map(m => m.name).join(', ')})`);
+    box.textContent = out.join('\n');
+  };
 
   $('#s-akey-save').onclick = () => {
     s.geminiKey = $('#s-gkey').value.trim();

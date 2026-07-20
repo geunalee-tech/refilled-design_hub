@@ -86,27 +86,37 @@ class Store {
     if (this.serverMode !== false) {
       try {
         const r = await fetch('/api/db');
-        if (r.ok) { this.serverMode = true; const j = await r.json(); return { status: 200, sha: j.sha, content: j.contentB64 }; }
-        if (r.status === 404) { this.serverMode = true; return { status: 404 }; }
-        this.serverMode = false; // 401(로그인 없음)·503(환경변수 미설정) 등 → 레거시로
-      } catch { this.serverMode = false; }
+        if (r.ok) { this.serverMode = true; this.serverDetail = ''; const j = await r.json(); return { status: 200, sha: j.sha, content: j.contentB64 }; }
+        if (r.status === 404) { this.serverMode = true; this.serverDetail = ''; return { status: 404 }; }
+        // 서버 동기화 불가 → 원인 기록 후 레거시로
+        this.serverMode = false;
+        this.serverDetail = r.status === 503
+          ? '서버에 GITHUB_TOKEN 환경변수가 없어요 → Vercel에서 추가 후 Redeploy 해주세요'
+          : r.status === 401
+            ? '로그인 세션을 서버가 인증하지 못했어요 → 로그아웃 후 다시 로그인해보고, 계속되면 SESSION_SECRET 환경변수를 확인해주세요'
+            : `서버 동기화 응답 오류 (${r.status})`;
+      } catch { this.serverMode = false; this.serverDetail = '/api/db 연결 실패 (배포/네트워크 확인)'; }
     }
     if (!this.legacyRemote()) return { status: 0 };
-    const res = await fetch(this.ghUrl(), { headers: this.ghHeaders() });
-    if (res.status === 404) return { status: 404 };
-    if (!res.ok) return { status: res.status };
-    const json = await res.json();
-    return { status: 200, sha: json.sha, content: json.content };
+    try {
+      const res = await fetch(this.ghUrl(), { headers: this.ghHeaders() });
+      if (res.status === 404) return { status: 404 };
+      if (!res.ok) return { status: res.status, err: 'GitHub 응답 ' + res.status };
+      const json = await res.json();
+      return { status: 200, sha: json.sha, content: json.content };
+    } catch { return { status: -1, err: 'GitHub 연결 실패 — 네트워크나 광고차단 확장프로그램을 확인해주세요' }; }
   }
 
   async remoteWrite(contentB64) {
     if (this.serverMode === true) {
-      const r = await fetch('/api/db', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contentB64, sha: this.sha }),
-      });
-      const j = await r.json().catch(() => ({}));
-      return { ok: r.ok, conflict: r.status === 409, status: r.status, sha: j.sha };
+      try {
+        const r = await fetch('/api/db', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contentB64, sha: this.sha }),
+        });
+        const j = await r.json().catch(() => ({}));
+        return { ok: r.ok, conflict: r.status === 409, status: r.status, sha: j.sha, err: j.error };
+      } catch { return { ok: false, conflict: false, status: -1, err: '서버(/api/db) 연결 실패 — 네트워크를 확인해주세요' }; }
     }
     const body = {
       message: `hub: ${this.settings.userName || 'member'} 데이터 업데이트`,
@@ -140,12 +150,13 @@ class Store {
       const res = await this.remoteRead();
       if (res.status === 0) { this.status = 'local'; this.emit(); return false; }
       if (res.status === 404) { this.status = 'synced'; this.sha = null; this.emit(); return true; } // 파일 없음 → 첫 push에서 생성
-      if (res.status !== 200) throw new Error('원격 응답 ' + res.status);
+      if (res.status !== 200) throw new Error(res.err || ('원격 응답 ' + res.status));
       this.sha = res.sha;
       const remote = JSON.parse(decodeURIComponent(escape(atob(res.content.replace(/\n/g, '')))));
       if (this.db.seeded === true) {
         // 로컬이 데모 시드 상태 → 팀 데이터를 통째로 받아들여요 (샘플이 팀 DB에 섞이지 않게)
         this.db = { ...DEFAULT_DB, ...remote };
+        this.db.seeded = false;   // 팀 데이터 수신 완료 → 데모 시드 아님
         this.migrate(); this.rebuildSnap();
         localStorage.setItem(LS_DB, JSON.stringify(this.db));
         this.status = 'synced'; this.emit();
@@ -154,6 +165,7 @@ class Store {
       // 항목 단위 병합: 원격 최신은 받아들이고, 아직 푸시 못 한 내 변경(mt 최신)은 지켜요
       const before = JSON.stringify({ ...remote, updatedAt: 0 });
       this.db = { ...DEFAULT_DB, ...this.mergeDb(remote) };
+      this.db.seeded = false;   // 팀 데이터 병합 완료 → 데모 시드 아님
       this.migrate();
       this.rebuildSnap();                       // 병합 결과에 내 mt가 새로 찍히지 않게
       localStorage.setItem(LS_DB, JSON.stringify(this.db));
@@ -203,6 +215,7 @@ class Store {
 
   async push(retry = true) {
     if (!this.hasRemote()) return;
+    if (this.db.seeded && this.sha) return; // 데모 시드 상태로는 팀 DB(원격)를 덮어쓰지 않아요 — 먼저 pull로 팀 데이터를 받아요
     this.status = 'syncing'; this.emit();
     try {
       const content = btoa(unescape(encodeURIComponent(JSON.stringify(this.db, null, 2))));
@@ -220,7 +233,7 @@ class Store {
         }
         throw new Error('동기화 충돌 — 다시 시도해주세요');
       }
-      if (!res.ok) throw new Error('저장 실패 ' + res.status);
+      if (!res.ok) throw new Error(res.err || ('저장 실패 ' + res.status));
       this.sha = res.sha;
       this.status = 'synced'; this.emit();
     } catch (e) {
@@ -294,6 +307,33 @@ class Store {
         { id: 'm-minhyeon', name: '방민현', role: '인턴' },
       ];
     }
+    // 같은 이름의 멤버가 중복이면 하나로 병합 (시드/기본값이 팀 DB에 섞인 경우 복구)
+    {
+      const refCount = id =>
+        (this.db.tasks || []).filter(t => (t.assignees || []).includes(id)).length +
+        (this.db.projects || []).filter(p => p.owner === id).length;
+      const byName = {}, remap = {};
+      const kept = [];
+      (this.db.members || []).forEach(m => {
+        const key = (m.name || '').replace(/\s+/g, '');
+        if (!key) { kept.push(m); return; }
+        const prev = byName[key];
+        if (!prev) { byName[key] = m; kept.push(m); return; }
+        if (refCount(m.id) > refCount(prev.id)) {           // 참조 많은 쪽을 대표로
+          remap[prev.id] = m.id; kept[kept.indexOf(prev)] = m; byName[key] = m;
+        } else {
+          remap[m.id] = prev.id;
+        }
+      });
+      if (Object.keys(remap).length) {
+        this.db.members = kept;
+        (this.db.tasks || []).forEach(t => {
+          t.assignees = [...new Set((t.assignees || []).map(id => remap[id] || id))];
+        });
+        (this.db.projects || []).forEach(p => { if (remap[p.owner]) p.owner = remap[p.owner]; });
+      }
+    }
+
     const map = { inbox: 'req', todo: 'req', blocked: 'confirm' };
     (this.db.tasks || []).forEach(t => {
       if (map[t.status]) t.status = map[t.status];
