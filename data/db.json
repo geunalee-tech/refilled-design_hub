@@ -652,7 +652,7 @@
           {
             "id": "mrq0h63i6qv88",
             "member": "김연우",
-            "text": "",
+            "text": "실제 채널에 적용된 모습을 목업으로 제작 2차",
             "criteria": "",
             "leadId": "",
             "done": false,
@@ -688,7 +688,7 @@
         },
         "evalNote": ""
       },
-      "mt": "2026-07-20T01:37:20.095Z"
+      "mt": "2026-07-20T06:24:48.442Z"
     },
     {
       "id": "mrniseqf6bmnn",
@@ -851,7 +851,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:19:50.025Z",
+  "updatedAt": "2026-07-20T06:24:48.443Z",
   "seeded": false,
   "docs": [],
   "meta": {
