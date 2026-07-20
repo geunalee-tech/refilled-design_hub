@@ -455,25 +455,6 @@
       "notes": "",
       "createdAt": "2026-07-20T06:54:50.039Z",
       "mt": "2026-07-20T06:54:50.039Z"
-    },
-    {
-      "id": "mrsvdmlzkqlt2",
-      "kind": "project",
-      "title": "[리브랜딩] 트리트먼트 상세페이지 — 최종 컨펌",
-      "project": "mrsvdmlzaqmhx",
-      "assignees": [
-        "m-geuna"
-      ],
-      "status": "req",
-      "priority": "중간",
-      "requester": "",
-      "requestedAt": "2026-07-20",
-      "due": "2026-08-13",
-      "link": "",
-      "files": [],
-      "notes": "",
-      "createdAt": "2026-07-20T06:54:50.039Z",
-      "mt": "2026-07-20T06:54:50.039Z"
     }
   ],
   "projects": [
@@ -947,7 +928,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:54:56.435Z",
+  "updatedAt": "2026-07-20T06:58:54.622Z",
   "seeded": false,
   "docs": [],
   "meta": {
