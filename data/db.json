@@ -620,12 +620,13 @@
             "prev": "12.3%"
           },
           "mrni3yyygd7sq": {
-            "prev": "20%"
+            "prev": "20%",
+            "cur": "20%"
           }
         },
         "evalNote": ""
       },
-      "mt": "2026-07-20T01:28:56.208Z"
+      "mt": "2026-07-20T01:28:59.056Z"
     },
     {
       "id": "mrniseqf6bmnn",
@@ -767,7 +768,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T01:28:56.209Z",
+  "updatedAt": "2026-07-20T01:29:02.490Z",
   "seeded": false,
   "docs": [],
   "meta": {
