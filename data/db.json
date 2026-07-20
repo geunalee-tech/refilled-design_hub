@@ -436,25 +436,6 @@
       "notes": "",
       "createdAt": "2026-07-20T06:54:50.039Z",
       "mt": "2026-07-20T06:54:50.039Z"
-    },
-    {
-      "id": "mrsvdmlzqpipb",
-      "kind": "project",
-      "title": "[리브랜딩] 트리트먼트 상세페이지 — 2차 디자인",
-      "project": "mrsvdmlzaqmhx",
-      "assignees": [
-        "m-geuna"
-      ],
-      "status": "req",
-      "priority": "중간",
-      "requester": "",
-      "requestedAt": "2026-07-20",
-      "due": "2026-08-09",
-      "link": "",
-      "files": [],
-      "notes": "",
-      "createdAt": "2026-07-20T06:54:50.039Z",
-      "mt": "2026-07-20T06:54:50.039Z"
     }
   ],
   "projects": [
@@ -928,7 +909,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:58:54.622Z",
+  "updatedAt": "2026-07-20T06:58:58.074Z",
   "seeded": false,
   "docs": [],
   "meta": {
