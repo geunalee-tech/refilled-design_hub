@@ -211,7 +211,7 @@
       "assignees": [
         "m-geuna"
       ],
-      "status": "req",
+      "status": "doing",
       "priority": "중간",
       "requester": "양지현",
       "requestedAt": "2026-07-15",
@@ -219,7 +219,8 @@
       "link": "https://app.notion.com/39ebd60b576280d4bad6f522d093d26f",
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
-      "createdAt": "2026-07-16T05:40:14.000Z"
+      "createdAt": "2026-07-16T05:40:14.000Z",
+      "mt": "2026-07-20T06:29:52.592Z"
     },
     {
       "id": "nt_39ebd60b5762800d86b8f7fd7da7e4a1",
@@ -853,7 +854,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:29:47.417Z",
+  "updatedAt": "2026-07-20T06:29:55.147Z",
   "seeded": false,
   "docs": [],
   "meta": {
