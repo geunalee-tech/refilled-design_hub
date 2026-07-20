@@ -212,7 +212,7 @@
       "assignees": [
         "m-geuna"
       ],
-      "status": "doing",
+      "status": "confirm",
       "priority": "중간",
       "requester": "양지현",
       "requestedAt": "2026-07-15",
@@ -221,7 +221,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-20T06:29:52.592Z"
+      "mt": "2026-07-20T14:30:32.640Z"
     },
     {
       "id": "nt_39ebd60b5762800d86b8f7fd7da7e4a1",
@@ -936,7 +936,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T13:07:29.524Z",
+  "updatedAt": "2026-07-20T14:30:35.876Z",
   "seeded": false,
   "docs": [],
   "meta": {
