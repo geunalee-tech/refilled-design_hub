@@ -463,23 +463,6 @@
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/3a3bd60b576280f1aa80c8732e2c5b28",
       "createdAt": "2026-07-20T11:24:15.548Z",
       "mt": "2026-07-20T11:30:22.919Z"
-    },
-    {
-      "id": "nt_3a3bd60b576280f19292de09cdc88e42",
-      "notionId": "3a3bd60b-5762-80f1-9292-de09cdc88e42",
-      "kind": "request",
-      "title": "[채널 및 프로젝트 명] 작업명",
-      "project": "",
-      "assignees": [],
-      "status": "req",
-      "priority": "중간",
-      "requester": "이근아",
-      "requestedAt": "2026-07-20",
-      "due": "",
-      "link": "https://app.notion.com/p/3a3bd60b576280f19292de09cdc88e42",
-      "files": [],
-      "notes": "노션 요청 DB에서 자동 등록",
-      "createdAt": "2026-07-20T12:38:31.070Z"
     }
   ],
   "projects": [
@@ -944,7 +927,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T12:42:15.004Z",
+  "updatedAt": "2026-07-20T12:42:21.806Z",
   "seeded": false,
   "docs": [],
   "meta": {
