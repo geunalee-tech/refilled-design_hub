@@ -476,15 +476,6 @@
       "start": "2026-07-01",
       "end": "2026-07-24",
       "owner": null
-    },
-    {
-      "id": "mrsvdmlzaqmhx",
-      "name": "[리브랜딩] 트리트먼트 상세페이지",
-      "color": "#8A3B5E",
-      "start": "2026-07-20",
-      "end": "2026-08-13",
-      "owner": "m-geuna",
-      "mt": "2026-07-20T06:54:50.039Z"
     }
   ],
   "members": [
@@ -871,7 +862,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:59:08.334Z",
+  "updatedAt": "2026-07-20T06:59:11.467Z",
   "seeded": false,
   "docs": [],
   "meta": {
