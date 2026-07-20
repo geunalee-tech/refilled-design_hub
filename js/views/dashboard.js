@@ -46,6 +46,13 @@ export function renderDashboard(main) {
   const dow0 = new Date(todayISO(-7) + 'T00:00:00').getDay();
   const satOff = (6 - dow0 + 7) % 7;
   const dayPct = 100 / 35;
+  // 바: 시작일·마지막일 칸만 진한 색, 중간은 연한 색
+  const gBarBg = (c, w, dp) => {
+    if (w <= dp * 2) return c;
+    const capPct = Math.min(48, (dp / w) * 100); // 바 내부 기준 하루 폭(%)
+    const light = `color-mix(in srgb, ${c} 22%, #eef1f5)`;
+    return `linear-gradient(90deg, ${c} 0 ${capPct.toFixed(2)}%, ${light} ${capPct.toFixed(2)}% ${(100 - capPct).toFixed(2)}%, ${c} ${(100 - capPct).toFixed(2)}% 100%)`;
+  };
   const wkndBg = `background-image:repeating-linear-gradient(90deg,rgba(120,120,120,.08) 0 ${(2 * dayPct).toFixed(3)}%,transparent ${(2 * dayPct).toFixed(3)}% ${(7 * dayPct).toFixed(3)}%);background-position:${(satOff * dayPct).toFixed(3)}% 0`;
 
   const ganttRows = [...db.projects]
@@ -60,7 +67,7 @@ export function renderDashboard(main) {
     return `<div class="g-row g-link" onclick="location.hash='#/tasks/projects'" title="${rangeLb} · 클릭하면 타임라인 편집으로 이동">
       <div class="g-name">${esc(p.name)}<span>${p.end ? `<b class="tl-dd ${ddCls}">${dday(p.end)}</b> · ` : ''}${rangeLb} · ${esc(store.memberName(p.owner))} · ${cnt}건</span></div>
       <div class="g-track" style="${wkndBg}">
-        <div class="g-bar" style="left:${l}%;width:${w}%;background:${p.color || 'var(--accent)'}">${w >= 26 ? `<span class="g-bar-lb">${rangeLb}</span>` : ''}</div>
+        <div class="g-bar" style="left:${l}%;width:${w}%;background:${gBarBg(p.color || 'var(--accent)', w, dayPct)}">${w >= 26 ? `<span class="g-bar-lb">${rangeLb}</span>` : ''}</div>
         <div class="g-today" style="left:${pct(today)}%"></div>
       </div>
     </div>`;

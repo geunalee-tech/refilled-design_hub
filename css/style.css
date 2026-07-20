@@ -127,7 +127,7 @@ a{color:inherit;text-decoration:none}
 .kb-col-h .cnt{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400}
 .kb-card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 11px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s,transform .15s}
 .kb-card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
-.kb-card .t{font-size:12.5px;font-weight:550;line-height:1.35}
+.kb-card .t{font-size:14px;font-weight:600;line-height:1.4}
 .kb-card .m{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;align-items:center}
 .kb-card .due{font-family:var(--mono);font-size:10px;color:var(--muted)}
 .kb-card .due.over{color:var(--red);font-weight:600}
@@ -317,7 +317,7 @@ a{color:inherit;text-decoration:none}
 .t2-canvas .g-due{position:absolute;top:50%;transform:translateY(-50%)}
 .t2-canvas .g-due-lb{position:absolute;top:50%;transform:translateY(-50%);font-size:9.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .t2-canvas .tl-nodue{position:absolute;left:10px;top:50%;transform:translateY(-50%)}
-.t2-barlb{position:sticky;left:274px;align-self:center;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.3);font-variant-numeric:tabular-nums;padding:0 9px}
+.t2-barlb{position:sticky;left:274px;align-self:center;font-size:10px;font-weight:700;color:#3a4356;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums;padding:1px 7px;margin:0 4px;background:rgba(255,255,255,.62);border-radius:99px}
 .t2-canvas .tl-bar{display:flex;align-items:center}
 .t2-head .t2-canvas{height:54px;border-bottom:1px solid var(--line);background:var(--card)}
 .t2-head .t2-lab{z-index:7;box-shadow:none}
@@ -445,7 +445,7 @@ a{color:inherit;text-decoration:none}
 .tk-meta .tk-dd.over{color:var(--red)}
 /* 대시보드 간트 날짜 표기 */
 .gantt .g-bar{overflow:hidden}
-.g-bar-lb{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:9.5px;font-weight:700;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.3);font-variant-numeric:tabular-nums}
+.g-bar-lb{position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:9.5px;font-weight:700;color:#3a4356;white-space:nowrap;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.62);border-radius:99px;padding:1px 6px}
 .g-today-lb{position:absolute;transform:translateX(-50%);top:-3px;background:var(--amber);color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px}
 .g-scale-track{position:relative}
 .g-name span .tl-dd{font-size:10px}

@@ -133,8 +133,8 @@ function mentionName(name, userMap) {
   const id = userMap[name] || userMap[name?.replace(/\s/g, '')];
   return id ? `<@${id}>` : name;
 }
-async function notifySlack(hook, t, boardUrl, userMap = {}, notionMap = {}) {
-  if (!hook) return;
+async function notifySlack(hook, t, boardUrl, userMap = {}, notionMap = {}, bot = null) {
+  if (!hook && !bot) return null;
   // 디자인팀-CT 사용자 그룹 멘션 (SLACK_TEAM_MENTION 환경변수로 교체 가능)
   const teamMention = process.env.SLACK_TEAM_MENTION || '<!subteam^S06BYJ0KS5T|@디자인팀-ct>';
   // 기획자 멘션: ① 노션ID→슬랙ID 맵 ② 이름→슬랙ID 맵 ③ 이름 표기
@@ -160,14 +160,48 @@ async function notifySlack(hook, t, boardUrl, userMap = {}, notionMap = {}) {
       { type: 'button', text: { type: 'plain_text', text: '업무 보드에서 확인', emoji: true }, url: boardUrl },
     ]},
   ];
+  // 봇 토큰이 있으면 chat.postMessage(회수 가능한 방식) 우선, 없으면 기존 웹훅
+  if (bot?.token && bot?.channel) {
+    const r = await fetch('https://slack.com/api/chat.postMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${bot.token}` },
+      body: JSON.stringify({ channel: bot.channel, text: `📥 새 요청 업무: ${t.title}`, blocks }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j.ok) return { ts: j.ts, channel: j.channel };
+    // 봇 실패(권한/미초대 등) 시 웹훅으로 폴백
+  }
+  if (!hook) return null;
   await fetch(hook, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: `📥 새 요청 업무: ${t.title} (${t.requester} · 마감 ${t.due || '미정'})`, blocks }),
   });
+  return null;
+}
+
+/* ── 슬랙 메시지 회수 (봇 토큰 방식으로 보낸 메시지만 가능) ── */
+async function deleteSlackMessage(bot, channel, ts) {
+  if (!bot?.token || !channel || !ts) return false;
+  const r = await fetch('https://slack.com/api/chat.delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8', Authorization: `Bearer ${bot.token}` },
+    body: JSON.stringify({ channel, ts }),
+  });
+  const j = await r.json().catch(() => ({}));
+  return !!j.ok;
+}
+
+/* 페이로드/페이지 속성에서 체크박스 값 읽기 (이름 무관, 첫 체크박스 속성) */
+function readCheckbox(page) {
+  for (const [name, p] of Object.entries(page?.properties || {})) {
+    if (p && p.type === 'checkbox') return { name, checked: !!p.checkbox };
+  }
+  return null;
 }
 
 export default async function handler(req, res) {
-  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', SLACK_WEBHOOK, SYNC_SECRET, NOTION_TOKEN, SLACK_USER_MAP, NOTION_SLACK_MAP } = process.env;
+  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', SLACK_WEBHOOK, SYNC_SECRET, NOTION_TOKEN, SLACK_USER_MAP, NOTION_SLACK_MAP, SLACK_BOT_TOKEN, SLACK_CHANNEL_ID } = process.env;
+  const bot = SLACK_BOT_TOKEN ? { token: SLACK_BOT_TOKEN, channel: SLACK_CHANNEL_ID } : null;
   let userMap = {}; try { userMap = JSON.parse(SLACK_USER_MAP || '{}'); } catch {}
   let notionMap = {}; try { notionMap = JSON.parse(NOTION_SLACK_MAP || '{}'); } catch {}
   if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: '환경변수(GH_TOKEN/GH_REPO) 미설정' });
@@ -190,6 +224,32 @@ export default async function handler(req, res) {
       } catch { /* 실패 시 페이로드 속성으로 진행 */ }
     }
 
+    /* ── 체크 해제 = 요청 회수: 슬랙 메시지 삭제 + (아직 요청 상태면) 업무 제거 ── */
+    const cb = readCheckbox(page);
+    if (cb && !cb.checked && page.id) {
+      let recalled = false, removed = false;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { sha, db } = await ghGet(GH_REPO, GH_BRANCH, GH_TOKEN);
+        const t = (db.tasks || []).find(x => x.notionId === page.id);
+        if (!t) return res.status(200).json({ ok: true, recalled: false, note: '미러링된 업무가 없어요' });
+        if (t.slackTs) {
+          recalled = await deleteSlackMessage(bot, t.slackChannel || SLACK_CHANNEL_ID, t.slackTs).catch(() => false);
+        }
+        let changed = false;
+        if (t.status === 'req') { // 아직 착수 전이면 보드에서도 제거
+          db.tasks = db.tasks.filter(x => x.notionId !== page.id); removed = true; changed = true;
+        } else if (recalled) { // 진행 중이면 업무는 유지, 회수 표시만
+          delete t.slackTs; delete t.slackChannel; t.mt = new Date().toISOString(); changed = true;
+        }
+        if (!changed) break;
+        db.updatedAt = new Date().toISOString();
+        try { await ghPut(GH_REPO, GH_BRANCH, GH_TOKEN, db, sha); break; }
+        catch (e) { if (attempt === 1) throw e; }
+      }
+      return res.status(200).json({ ok: true, recalled, removed,
+        note: recalled ? '슬랙 알림을 회수했어요' : '슬랙 회수 실패 또는 회수 불가(웹훅 방식 메시지)' });
+    }
+
     const task = mapTask(page);
     if (pageBody) task.notes = pageBody;
 
@@ -208,6 +268,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: '제목이 비어 있어 건너뛰었어요 (작성 완료 후 전송해주세요)' });
     }
 
+    // 슬랙 알림을 먼저 보내 메시지 ID(ts)를 받아둬요 — 나중에 회수할 때 필요
+    const boardUrl = `https://${req.headers.host}/#/tasks/requests`;
+    const sent = await notifySlack(SLACK_WEBHOOK, task, boardUrl, userMap, notionMap, bot).catch(() => null);
+    if (sent?.ts) { task.slackTs = sent.ts; task.slackChannel = sent.channel; }
+
     // db.json 갱신 (sha 충돌 시 1회 재시도)
     for (let attempt = 0; attempt < 2; attempt++) {
       const { sha, db } = await ghGet(GH_REPO, GH_BRANCH, GH_TOKEN);
@@ -225,9 +290,7 @@ export default async function handler(req, res) {
       catch (e) { if (attempt === 1) throw e; }
     }
 
-    const boardUrl = `https://${req.headers.host}/#/tasks/requests`;
-    await notifySlack(SLACK_WEBHOOK, task, boardUrl, userMap, notionMap).catch(() => {});
-    return res.status(200).json({ ok: true, task: task.title });
+    return res.status(200).json({ ok: true, task: task.title, slack: sent?.ts ? 'bot(회수 가능)' : 'webhook(회수 불가)' });
   } catch (e) {
     return res.status(500).json({ error: String(e.message || e) });
   }

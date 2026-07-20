@@ -5,6 +5,13 @@ import { esc, toast, dday, STATUS, openModal, closeModal, $ } from '../ui.js';
 import { editTask, subTabs } from './tasks.js';
 
 const DAY_W = 30;            // 하루 = 30px
+
+/* 프로젝트 바: 시작일·마지막일 칸만 진한 색, 중간 진행 구간은 연한 색 */
+function barBg(c, w) {
+  if (w <= DAY_W * 2) return c; // 1~2일짜리는 단색
+  const light = `color-mix(in srgb, ${c} 22%, #eef1f5)`;
+  return `linear-gradient(90deg, ${c} 0 ${DAY_W}px, ${light} ${DAY_W}px calc(100% - ${DAY_W}px), ${c} calc(100% - ${DAY_W}px) 100%)`;
+}
 const LAB_W = 264;           // 왼쪽 라벨 열 너비
 let expanded = new Set();
 let lastScrollX = null;      // 렌더 간 스크롤 위치 유지 (null = 오늘로 이동)
@@ -106,7 +113,7 @@ export function renderTimeline(main) {
           ${lines}
           <div class="g-bar tl-bar" data-drag="move" data-pid="${p.id}"
                title="${s} ~ ${e}${p.end ? ` · ${dday(p.end)}` : ''} · 드래그로 기간 이동"
-               style="left:${bl}px;width:${bw}px;background:${p.color || 'var(--accent)'}">
+               style="left:${bl}px;width:${bw}px;background:${barBg(p.color || 'var(--accent)', bw)}">
             <span class="g-h g-hl" data-drag="l" data-pid="${p.id}"></span>
             ${bw >= 118 ? `<span class="t2-barlb">${rangeLb}</span>` : ''}
             <span class="g-h g-hr" data-drag="r" data-pid="${p.id}"></span>
