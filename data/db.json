@@ -401,6 +401,23 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/3a3bd60b5762803cbe8bf10d7b277544",
       "createdAt": "2026-07-20T06:48:13.551Z"
+    },
+    {
+      "id": "nt_3a3bd60b57628038b1cfdf6890c6a90d",
+      "notionId": "3a3bd60b-5762-8038-b1cf-df6890c6a90d",
+      "kind": "request",
+      "title": "[트래픽캠페인 포맷] 디자인 포맷 요청",
+      "project": "",
+      "assignees": [],
+      "status": "req",
+      "priority": "중간",
+      "requester": "정라영",
+      "requestedAt": "2026-07-20",
+      "due": "2026-07-31",
+      "link": "https://app.notion.com/p/3a3bd60b57628038b1cfdf6890c6a90d",
+      "files": [],
+      "notes": "노션 요청 DB에서 자동 등록",
+      "createdAt": "2026-07-20T07:42:36.865Z"
     }
   ],
   "projects": [
@@ -865,7 +882,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T07:19:15.838Z",
+  "updatedAt": "2026-07-20T07:42:37.072Z",
   "seeded": false,
   "docs": [],
   "meta": {
