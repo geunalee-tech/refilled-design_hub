@@ -340,6 +340,23 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/US-3a3bd60b576280d98ce9e04c1a9fe752",
       "createdAt": "2026-07-20T03:38:08.174Z"
+    },
+    {
+      "id": "nt_3a3bd60b5762801aa3f8e768bf8c48ec",
+      "notionId": "3a3bd60b-5762-801a-a3f8-e768bf8c48ec",
+      "kind": "request",
+      "title": "[영국 부스터 프로] 라벨 디자인",
+      "project": "",
+      "assignees": [],
+      "status": "req",
+      "priority": "중간",
+      "requester": "신경환",
+      "requestedAt": "2026-07-20",
+      "due": "2026-07-23",
+      "link": "https://www.figma.com/board/ywLF48nbZRQGiQhJCfau0D/%EB%B6%80%EC%8A%A4%ED%84%B0-%ED%94%84%EB%A1%9C-UK-%EB%9D%BC%EB%B2%A8?node-id=1-2&t=Er4OERm9iwmVCVM5-1",
+      "files": [],
+      "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/3a3bd60b5762801aa3f8e768bf8c48ec",
+      "createdAt": "2026-07-20T03:46:57.361Z"
     }
   ],
   "projects": [
@@ -790,7 +807,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T03:38:08.389Z",
+  "updatedAt": "2026-07-20T03:46:57.573Z",
   "seeded": false,
   "docs": [],
   "meta": {
