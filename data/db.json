@@ -48,7 +48,7 @@
       "assignees": [
         "mrrc1mw73z8xp"
       ],
-      "status": "req",
+      "status": "doing",
       "priority": "중간",
       "requester": "우정애",
       "requestedAt": "2026-07-16",
@@ -57,7 +57,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/IG-7-OY-39fbd60b57628016a77cfb60222d290c",
       "createdAt": "2026-07-16T01:59:16.377Z",
-      "mt": "2026-07-19T05:05:56.439Z"
+      "mt": "2026-07-20T06:29:44.602Z"
     },
     {
       "id": "nt_39fbd60b5762807c9c19e0b5314ac7a7",
@@ -853,7 +853,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:25:35.560Z",
+  "updatedAt": "2026-07-20T06:29:47.417Z",
   "seeded": false,
   "docs": [],
   "meta": {
