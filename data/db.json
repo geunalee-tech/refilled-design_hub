@@ -618,11 +618,14 @@
         "lagMonth": {
           "mrni3yyysgb92": {
             "prev": "12.3%"
+          },
+          "mrni3yyygd7sq": {
+            "prev": "20%"
           }
         },
         "evalNote": ""
       },
-      "mt": "2026-07-20T01:28:53.246Z"
+      "mt": "2026-07-20T01:28:56.208Z"
     },
     {
       "id": "mrniseqf6bmnn",
@@ -764,7 +767,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T01:28:53.247Z",
+  "updatedAt": "2026-07-20T01:28:56.209Z",
   "seeded": false,
   "docs": [],
   "meta": {
