@@ -541,6 +541,15 @@
       "start": "2026-07-01",
       "end": "2026-07-24",
       "owner": null
+    },
+    {
+      "id": "p-treatment",
+      "name": "[리브랜딩] 트리트먼트",
+      "color": "#3B7A8A",
+      "start": "2026-07-01",
+      "end": "2026-07-31",
+      "owner": "m-geuna",
+      "mt": "2026-07-18T07:34:12.830Z"
     }
   ],
   "members": [
@@ -927,7 +936,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T12:42:21.806Z",
+  "updatedAt": "2026-07-20T13:07:29.524Z",
   "seeded": false,
   "docs": [],
   "meta": {
