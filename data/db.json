@@ -398,25 +398,6 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록\n\n📄 노션 페이지: https://app.notion.com/p/3a3bd60b5762803cbe8bf10d7b277544",
       "createdAt": "2026-07-20T06:48:13.551Z"
-    },
-    {
-      "id": "mrsvdmlz7fpyk",
-      "kind": "project",
-      "title": "[리브랜딩] 트리트먼트 상세페이지 — 기획 전달·자료 취합",
-      "project": "mrsvdmlzaqmhx",
-      "assignees": [
-        "m-geuna"
-      ],
-      "status": "req",
-      "priority": "중간",
-      "requester": "",
-      "requestedAt": "2026-07-20",
-      "due": "2026-07-28",
-      "link": "",
-      "files": [],
-      "notes": "",
-      "createdAt": "2026-07-20T06:54:50.039Z",
-      "mt": "2026-07-20T06:54:50.039Z"
     }
   ],
   "projects": [
@@ -890,7 +871,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T06:59:01.105Z",
+  "updatedAt": "2026-07-20T06:59:08.334Z",
   "seeded": false,
   "docs": [],
   "meta": {
