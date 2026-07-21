@@ -1,6 +1,8 @@
 import { mentionizeNames } from './slackmap.js';
-/* store.js — 단일 원천 데이터 스토어
-   로컬(localStorage) 우선 + GitHub 저장소(data/db.json)를 팀 공유 DB로 동기화 */
+import { supabase, supaState, initSupabase } from './supabase.js';
+/* store.js — 단일 원천 데이터 스토어 (Supabase 행 단위 저장, 사내 표준)
+   localStorage는 즉시 표시용 캐시 — 원본은 Supabase 도메인 테이블.
+   저장은 변경된 행만 upsert/delete 해요 (통짜 JSON 저장 금지 — 동시 수정 유실 방지). */
 
 const LS_DB = 'rfhub_db_v1';
 const LS_SET = 'rfhub_settings_v1';
@@ -17,7 +19,7 @@ export const todayISO = (offset = 0) => addDaysISO(localISO(new Date()), offset)
 
 const DEFAULT_DB = {
   tasks: [], projects: [], members: [], rituals: [], archive: [], trends: [],
-  config: {}, guardLog: [], updatedAt: null, seeded: false
+  config: {}, guardLog: [], updatedAt: null
 };
 
 function loadJSON(key, fallback) {
@@ -26,43 +28,61 @@ function loadJSON(key, fallback) {
 }
 
 class Store {
+  static ARR_KEYS = ['tasks', 'projects', 'members', 'rituals', 'archive', 'trends'];
+
   constructor() {
-    this.db = { ...DEFAULT_DB, ...loadJSON(LS_DB, {}) };
-    this.settings = loadJSON(LS_SET, {
-      userName: '', repo: '', branch: 'main', githubToken: '', anthropicKey: ''
-    });
+    this.db = { ...DEFAULT_DB, ...loadJSON(LS_DB, {}) }; // 캐시 즉시 표시 → 연결 후 pull()이 원본으로 교체
+    this.settings = loadJSON(LS_SET, { userName: '', geminiKey: '', anthropicKey: '' });
     this.migrate();
-    this.sha = null;          // GitHub 파일 sha (충돌 방지용)
-    this.serverMode = null;   // null=미확인 | true=서버(/api/db) 동기화 | false=서버 불가(레거시/로컬)
+    this.connected = false;   // Supabase 연결·인증 완료 여부
     this.status = 'local';    // local | synced | syncing | error
+    this.serverDetail = '';   // 로컬 모드인 이유 (배지 안내용)
+    this.lastError = '';
     this.listeners = [];
     this._pushTimer = null;
-    this._snap = {};          // 항목별 스냅샷 (변경 감지 → mt 스탬프용)
+    this._pending = null;     // 아직 서버에 안 올라간 변경 묶음
+    this._snap = {};          // 항목별 스냅샷 (변경·삭제 감지용)
+    this._cfgSnap = JSON.stringify(this.db.config || {});
+    this._guardSeen = new Set((this.db.guardLog || []).map(g => g?.at).filter(Boolean));
     this.rebuildSnap();
   }
 
-  /* ── 항목 단위 수정시각(mt) ──
-     save() 때 스냅샷과 비교해 실제로 바뀐 항목에만 mt를 찍어요.
-     병합 시 같은 id가 충돌하면 mt가 최신인 쪽이 이겨서,
-     오래 열어둔 다른 탭이 낡은 데이터로 최신 변경을 되돌리는 걸 막아요. */
-  static ARR_KEYS = ['tasks', 'projects', 'members', 'rituals', 'archive', 'trends'];
+  /* ── 변경 감지 ──
+     save() 때 스냅샷과 비교해 실제로 바뀐 행만 골라 서버에 올려요.
+     mt(수정시각)는 바뀐 항목에만 찍혀요 — 다른 탭·팀원과의 충돌 판단 기준. */
   _sig(item) { const { mt, ...rest } = item; return JSON.stringify(rest); }
   rebuildSnap() {
     this._snap = {};
     Store.ARR_KEYS.forEach(k => (this.db[k] || []).forEach(it =>
       it && it.id && (this._snap[k + ':' + it.id] = this._sig(it))));
   }
-  stampChanged() {
+
+  /* 스냅샷 대비 바뀐 행·지워진 행을 수집하고 스냅샷을 갱신해요 */
+  collectChanges() {
     const now = new Date().toISOString();
-    Store.ARR_KEYS.forEach(k => (this.db[k] || []).forEach(it => {
-      if (!it || !it.id) return;
-      if (this._snap[k + ':' + it.id] !== this._sig(it)) it.mt = now;
-    }));
+    const out = { upserts: {}, deletes: {}, config: false, guards: [] };
+    let any = false;
+    for (const k of Store.ARR_KEYS) {
+      const cur = new Map((this.db[k] || []).filter(x => x && x.id).map(x => [String(x.id), x]));
+      const changed = [], deleted = [];
+      for (const [id, it] of cur) {
+        if (this._snap[k + ':' + id] !== this._sig(it)) { it.mt = now; changed.push(it); }
+      }
+      for (const key of Object.keys(this._snap)) {
+        if (!key.startsWith(k + ':')) continue;
+        const id = key.slice(k.length + 1);
+        if (!cur.has(id)) deleted.push(id);
+      }
+      if (changed.length) { out.upserts[k] = changed; any = true; }
+      if (deleted.length) { out.deletes[k] = deleted; any = true; }
+    }
+    const cfgSig = JSON.stringify(this.db.config || {});
+    if (cfgSig !== this._cfgSnap) { out.config = true; this._cfgSnap = cfgSig; any = true; }
+    for (const g of this.db.guardLog || []) {
+      if (g?.at && !this._guardSeen.has(g.at)) { out.guards.push(g); this._guardSeen.add(g.at); any = true; }
+    }
     this.rebuildSnap();
-  }
-  static newer(a, b) { // 같은 id 충돌 → mt 최신 승, 없거나 같으면 a(로컬) 우선
-    const ma = a?.mt || a?.createdAt || '', mb = b?.mt || b?.createdAt || '';
-    return mb > ma ? b : a;
+    return any ? out : null;
   }
 
   onChange(fn) { this.listeners.push(fn); }
@@ -70,174 +90,110 @@ class Store {
 
   saveSettings() { localStorage.setItem(LS_SET, JSON.stringify(this.settings)); }
 
+  hasRemote() { return this.connected; }
+
   save({ push = true } = {}) {
-    this.stampChanged();
+    const changes = this.collectChanges();
     this.db.updatedAt = new Date().toISOString();
     localStorage.setItem(LS_DB, JSON.stringify(this.db));
     this.emit();
-    if (push && this.hasRemote()) this.schedulePush();
+    if (push && changes) { this._mergePending(changes); this.schedulePush(); }
   }
 
-  legacyRemote() { return !!(this.settings.githubToken && this.settings.repo); }
-  hasRemote() { return this.serverMode === true || this.legacyRemote(); }
-
-  /* ── 전송 계층: 서버(/api/db, 로그인 쿠키 인증) 우선, 실패 시 브라우저 토큰(레거시) ── */
-  async remoteRead() {
-    if (this.serverMode !== false) {
-      try {
-        const r = await fetch('/api/db');
-        if (r.ok) { this.serverMode = true; this.serverDetail = ''; const j = await r.json(); return { status: 200, sha: j.sha, content: j.contentB64 }; }
-        if (r.status === 404) { this.serverMode = true; this.serverDetail = ''; return { status: 404 }; }
-        // 서버 동기화 불가 → 원인 기록 후 레거시로
-        this.serverMode = false;
-        this.serverDetail = r.status === 503
-          ? '서버에 GITHUB_TOKEN 환경변수가 없어요 → Vercel에서 추가 후 Redeploy 해주세요'
-          : r.status === 401
-            ? '로그인 세션을 서버가 인증하지 못했어요 → 로그아웃 후 다시 로그인해보고, 계속되면 SESSION_SECRET 환경변수를 확인해주세요'
-            : `서버 동기화 응답 오류 (${r.status})`;
-      } catch { this.serverMode = false; this.serverDetail = '/api/db 연결 실패 (배포/네트워크 확인)'; }
+  _mergePending(c) {
+    if (!this._pending) { this._pending = c; return; }
+    const p = this._pending;
+    for (const k of Object.keys(c.upserts)) {
+      const map = new Map((p.upserts[k] || []).map(x => [String(x.id), x]));
+      c.upserts[k].forEach(x => map.set(String(x.id), x));
+      p.upserts[k] = [...map.values()];
     }
-    if (!this.legacyRemote()) return { status: 0 };
-    try {
-      const res = await fetch(this.ghUrl(), { headers: this.ghHeaders() });
-      if (res.status === 404) return { status: 404 };
-      if (!res.ok) return { status: res.status, err: 'GitHub 응답 ' + res.status };
-      const json = await res.json();
-      return { status: 200, sha: json.sha, content: json.content };
-    } catch { return { status: -1, err: 'GitHub 연결 실패 — 네트워크나 광고차단 확장프로그램을 확인해주세요' }; }
-  }
-
-  async remoteWrite(contentB64) {
-    if (this.serverMode === true) {
-      try {
-        const r = await fetch('/api/db', {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contentB64, sha: this.sha }),
-        });
-        const j = await r.json().catch(() => ({}));
-        return { ok: r.ok, conflict: r.status === 409, status: r.status, sha: j.sha, err: j.error };
-      } catch { return { ok: false, conflict: false, status: -1, err: '서버(/api/db) 연결 실패 — 네트워크를 확인해주세요' }; }
+    for (const k of Object.keys(c.deletes)) {
+      p.deletes[k] = [...new Set([...(p.deletes[k] || []), ...c.deletes[k]])];
+      // 같은 id가 upsert 대기 중이었다면 삭제가 이겨요
+      if (p.upserts[k]) p.upserts[k] = p.upserts[k].filter(x => !p.deletes[k].includes(String(x.id)));
     }
-    const body = {
-      message: `hub: ${this.settings.userName || 'member'} 데이터 업데이트`,
-      content: contentB64, branch: this.settings.branch || 'main',
-    };
-    if (this.sha) body.sha = this.sha;
-    const res = await fetch(this.ghUrl().split('?')[0], {
-      method: 'PUT', headers: this.ghHeaders(), body: JSON.stringify(body),
-    });
-    if (res.status === 409 || res.status === 422) return { ok: false, conflict: true, status: res.status };
-    if (!res.ok) return { ok: false, conflict: false, status: res.status };
-    const json = await res.json();
-    return { ok: true, conflict: false, status: res.status, sha: json.content.sha };
-  }
-
-  ghUrl() {
-    return `https://api.github.com/repos/${this.settings.repo}/contents/data/db.json` +
-      (this.settings.branch ? `?ref=${this.settings.branch}` : '');
-  }
-  ghHeaders() {
-    return {
-      'Authorization': `Bearer ${this.settings.githubToken}`,
-      'Accept': 'application/vnd.github+json'
-    };
-  }
-
-  async pull() {
-    if (this.serverMode === false && !this.legacyRemote()) return false;
-    this.status = 'syncing'; this.emit();
-    try {
-      const res = await this.remoteRead();
-      if (res.status === 0) { this.status = 'local'; this.emit(); return false; }
-      if (res.status === 404) { this.status = 'synced'; this.sha = null; this.emit(); return true; } // 파일 없음 → 첫 push에서 생성
-      if (res.status !== 200) throw new Error(res.err || ('원격 응답 ' + res.status));
-      this.sha = res.sha;
-      const remote = JSON.parse(decodeURIComponent(escape(atob(res.content.replace(/\n/g, '')))));
-      if (this.db.seeded === true) {
-        // 로컬이 데모 시드 상태 → 팀 데이터를 통째로 받아들여요 (샘플이 팀 DB에 섞이지 않게)
-        this.db = { ...DEFAULT_DB, ...remote };
-        this.db.seeded = false;   // 팀 데이터 수신 완료 → 데모 시드 아님
-        this.migrate(); this.rebuildSnap();
-        localStorage.setItem(LS_DB, JSON.stringify(this.db));
-        this.status = 'synced'; this.emit();
-        return true;
-      }
-      // 항목 단위 병합: 원격 최신은 받아들이고, 아직 푸시 못 한 내 변경(mt 최신)은 지켜요
-      const before = JSON.stringify({ ...remote, updatedAt: 0 });
-      this.db = { ...DEFAULT_DB, ...this.mergeDb(remote) };
-      this.db.seeded = false;   // 팀 데이터 병합 완료 → 데모 시드 아님
-      this.migrate();
-      this.rebuildSnap();                       // 병합 결과에 내 mt가 새로 찍히지 않게
-      localStorage.setItem(LS_DB, JSON.stringify(this.db));
-      if (JSON.stringify({ ...this.db, updatedAt: 0 }) !== before) this.schedulePush(); // 로컬이 이긴 부분이 있으면 원격에도 반영
-      this.status = 'synced'; this.emit();
-      return true;
-    } catch (e) {
-      console.error(e); this.status = 'error'; this.emit(); return false;
-    }
+    p.config = p.config || c.config;
+    p.guards.push(...c.guards);
   }
 
   schedulePush() {
     clearTimeout(this._pushTimer);
-    this._pushTimer = setTimeout(() => this.push(), 1200); // 연속 편집 디바운스
+    this._pushTimer = setTimeout(() => this.push(), 800); // 연속 편집 디바운스
   }
 
-  /* 원격 db.json을 읽기만 (로컬 상태 안 건드림) */
-  async fetchRemote() {
-    const res = await this.remoteRead();
-    if (res.status !== 200) throw new Error('원격 응답 ' + res.status);
-    return { sha: res.sha, db: JSON.parse(decodeURIComponent(escape(atob(res.content.replace(/\n/g, ''))))) };
+  /* ── 연결: Supabase 초기화 + 브릿지 세션 ── */
+  async connect() {
+    const ok = await initSupabase();
+    this.connected = ok;
+    this.serverDetail = supaState.detail;
+    return ok;
   }
 
-  /* 충돌 병합: 같은 항목은 '더 최근에 수정된 쪽(mt)'이 이겨요.
-     mt가 없거나 같으면 로컬 우선 (기존 동작 유지) */
-  mergeDb(remote) {
-    const byId = arr => Object.fromEntries((arr || []).map(x => [x.id, x]));
-    const mergeArr = (loc, rem) => {
-      const L = byId(loc), R = byId(rem);
-      return [...new Set([...Object.keys(R), ...Object.keys(L)])]
-        .map(id => (id in L && id in R) ? Store.newer(L[id], R[id]) : (L[id] || R[id]));
-    };
-    const L = this.db, R = remote || {};
-    return {
-      ...R, ...L,
-      tasks: mergeArr(L.tasks, R.tasks),
-      projects: mergeArr(L.projects, R.projects),
-      members: mergeArr(L.members, R.members),
-      rituals: mergeArr(L.rituals, R.rituals),
-      archive: mergeArr(L.archive, R.archive),
-      trends: mergeArr(L.trends, R.trends),
-      guardLog: [...(R.guardLog || []), ...(L.guardLog || []).filter(g => !(R.guardLog || []).some(r => r.at === g.at))],
-      config: { ...(R.config || {}), ...(L.config || {}) },
-      updatedAt: new Date().toISOString()
-    };
-  }
-
-  async push(retry = true) {
-    if (!this.hasRemote()) return;
-    if (this.db.seeded && this.sha) return; // 데모 시드 상태로는 팀 DB(원격)를 덮어쓰지 않아요 — 먼저 pull로 팀 데이터를 받아요
+  /* ── 읽기: 테이블 전체 → 메모리 (원본은 항상 서버) ── */
+  async pull() {
+    if (!this.connected && !(await this.connect())) { this.status = 'local'; this.emit(); return false; }
+    if (this._pending) await this.push(); // 안 올라간 변경 먼저 반영
     this.status = 'syncing'; this.emit();
     try {
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(this.db, null, 2))));
-      const res = await this.remoteWrite(content);
-      if (res.conflict) {
-        // 원격이 먼저 바뀜 (노션 미러링·다른 팀원) → 병합 후 1회 재시도
-        if (retry) {
-          const remote = await this.fetchRemote();
-          this.db = this.mergeDb(remote.db);
-          this.sha = remote.sha;
-          this.migrate();
-          this.rebuildSnap();                   // 원격에서 받아온 항목에 내 mt가 찍히지 않게
-          this.save({ push: false });
-          return this.push(false);
-        }
-        throw new Error('동기화 충돌 — 다시 시도해주세요');
+      const reads = Store.ARR_KEYS.map(t => supabase.from(t).select('data').order('id'));
+      reads.push(supabase.from('app_state').select('key,data'));
+      reads.push(supabase.from('guard_log').select('data').order('at'));
+      const results = await Promise.all(reads);
+      for (const r of results) if (r.error) throw new Error(r.error.message);
+
+      const fresh = { ...DEFAULT_DB };
+      Store.ARR_KEYS.forEach((t, i) => { fresh[t] = results[i].data.map(row => row.data); });
+      const states = Object.fromEntries(results[Store.ARR_KEYS.length].data.map(r => [r.key, r.data]));
+      fresh.config = states.config || {};
+      fresh.guardLog = results[Store.ARR_KEYS.length + 1].data.map(r => r.data);
+      fresh.updatedAt = new Date().toISOString();
+
+      this.db = fresh;
+      this.migrate();
+      this._cfgSnap = JSON.stringify(this.db.config || {});
+      this._guardSeen = new Set((this.db.guardLog || []).map(g => g?.at).filter(Boolean));
+      this.rebuildSnap();
+      localStorage.setItem(LS_DB, JSON.stringify(this.db));
+      this.status = 'synced'; this.emit();
+      return true;
+    } catch (e) {
+      console.error(e); this.lastError = String(e.message || e);
+      this.status = 'error'; this.emit(); return false;
+    }
+  }
+
+  /* ── 쓰기: 대기 중인 변경만 행 단위 upsert/delete ── */
+  async push() {
+    if (!this.connected || !this._pending) return;
+    const batch = this._pending; this._pending = null;
+    this.status = 'syncing'; this.emit();
+    try {
+      for (const [t, items] of Object.entries(batch.upserts)) {
+        const { error } = await supabase.from(t)
+          .upsert(items.map(x => ({ id: String(x.id), data: x })));
+        if (error) throw new Error(`${t} 저장 실패: ${error.message}`);
       }
-      if (!res.ok) throw new Error(res.err || ('저장 실패 ' + res.status));
-      this.sha = res.sha;
+      for (const [t, ids] of Object.entries(batch.deletes)) {
+        const { error } = await supabase.from(t).delete().in('id', ids);
+        if (error) throw new Error(`${t} 삭제 실패: ${error.message}`);
+      }
+      if (batch.config) {
+        const { error } = await supabase.from('app_state')
+          .upsert({ key: 'config', data: this.db.config || {} });
+        if (error) throw new Error('설정 저장 실패: ' + error.message);
+      }
+      if (batch.guards.length) {
+        const { error } = await supabase.from('guard_log')
+          .upsert(batch.guards.map(g => ({ at: g.at, data: g })), { onConflict: 'at', ignoreDuplicates: true });
+        if (error) throw new Error('로그 저장 실패: ' + error.message);
+      }
       this.status = 'synced'; this.emit();
     } catch (e) {
       console.error(e); this.lastError = String(e.message || e);
+      // 실패분 복원 — 그 사이 쌓인 새 변경이 있으면 새 쪽이 이기도록 순서 유지
+      const newer = this._pending; this._pending = batch;
+      if (newer) this._mergePending(newer);
       this.status = 'error'; this.emit();
     }
   }
@@ -252,7 +208,7 @@ class Store {
     return ids.map(id => this.memberName(id)).join(', ') || '미지정';
   }
 
-  /* ── 구버전 데이터 → 신규 스키마 마이그레이션 ── */
+  /* ── 구버전 데이터 → 신규 스키마 정규화 (메모리 내) ── */
   migrate() {
     if (!this.db.config) this.db.config = {};
     if (!Array.isArray(this.db.guardLog)) this.db.guardLog = [];
@@ -299,14 +255,6 @@ class Store {
       seenIds.add(t.id);
     });
 
-    // 멤버 목록이 비어 있으면 디자인팀 기본 구성으로 복구
-    if (!Array.isArray(this.db.members) || this.db.members.length === 0) {
-      this.db.members = [
-        { id: 'm-geuna', name: '이근아', role: '팀장' },
-        { id: 'm-yeonwoo', name: '김연우', role: '시니어' },
-        { id: 'm-minhyeon', name: '방민현', role: '인턴' },
-      ];
-    }
     // 같은 이름의 멤버가 중복이면 하나로 병합 (시드/기본값이 팀 DB에 섞인 경우 복구)
     {
       const refCount = id =>
@@ -352,49 +300,24 @@ class Store {
     });
   }
 
-  /* ── 첨부 파일 업로드: 저장소 files/ 폴더에 커밋 ── */
+  /* ── 첨부 파일 업로드/다운로드 (서버 경유 — 추후 사내 파일허브로 전환 예정) ── */
   async uploadAttachment(fileName, base64) {
-    if (this.serverMode === true) {
-      const r = await fetch('/api/file', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fileName, base64 }),
-      });
-      if (!r.ok) throw new Error('업로드 실패 ' + r.status);
-      return await r.json();
-    }
-    if (!this.legacyRemote()) throw new Error('동기화 연결이 필요해요 (로그인 상태 또는 설정의 저장소·토큰 확인)');
-    const safe = fileName.replace(/[\/\\?%*:|"<>]/g, '_');
-    const path = `files/${Date.now().toString(36)}_${safe}`;
-    const url = `https://api.github.com/repos/${this.settings.repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
-    const res = await fetch(url, {
-      method: 'PUT', headers: this.ghHeaders(),
-      body: JSON.stringify({ message: `hub: 첨부 업로드 (${this.settings.userName || 'member'})`, content: base64, branch: this.settings.branch || 'main' })
+    const r = await fetch('/api/file', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: fileName, base64 }),
     });
-    if (!res.ok) throw new Error('업로드 실패 ' + res.status);
-    const json = await res.json();
-    return { name: fileName, url: json.content.download_url, path };
+    if (!r.ok) throw new Error('업로드 실패 ' + r.status);
+    return await r.json();
   }
 
-  /* ── 첨부 파일 직접 다운로드 (GitHub API로 받아 blob 저장) ── */
   async downloadAttachment(f) {
     try {
-      if (f.path && this.serverMode === true) {
+      if (f.path) {
         const r = await fetch('/api/file?path=' + encodeURIComponent(f.path));
         if (!r.ok) throw new Error(r.status);
         const { contentB64 } = await r.json();
         const bin = atob(contentB64.replace(/\n/g, ''));
         const blob = new Blob([Uint8Array.from(bin, c => c.charCodeAt(0))]);
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = f.name;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-        return true;
-      }
-      if (f.path && this.legacyRemote()) {
-        const url = `https://api.github.com/repos/${this.settings.repo}/contents/${f.path.split('/').map(encodeURIComponent).join('/')}?ref=${this.settings.branch || 'main'}`;
-        const res = await fetch(url, { headers: { ...this.ghHeaders(), Accept: 'application/vnd.github.raw' } });
-        if (!res.ok) throw new Error(res.status);
-        const blob = await res.blob();
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob); a.download = f.name;
         document.body.appendChild(a); a.click(); a.remove();
@@ -450,40 +373,6 @@ class Store {
     ];
     const fallback = `📥 새 요청 업무: ${title} (${t.requester || '요청'} · 마감 ${t.due || '미정'})`;
     this.notifySlack(fallback, blocks).catch(() => {});
-  }
-
-  seedIfEmpty() {
-    if (this.db.seeded || this.db.tasks.length || this.db.members.length) return;
-    const t = todayISO;
-    const m = [
-      { id: 'm-guena', name: '근아', role: '팀장 · BX 리드' },
-      { id: 'm-yeonwoo', name: '김연우', role: '시니어 디자이너' },
-      { id: 'm-eunseo', name: '김은서', role: '인턴 · AI 워크플로' },
-      { id: 'm-minhyun', name: '민현', role: '인턴 · 해외 채널' },
-    ];
-    const p = [
-      { id: 'p-detail', name: '상세페이지 리뉴얼', color: '#006DE2', start: t(-10), end: t(14), owner: 'm-yeonwoo' },
-      { id: 'p-exo', name: 'cADPR Exo 캠페인', color: '#0F7B5F', start: t(-3), end: t(25), owner: 'm-guena' },
-      { id: 'p-global', name: '해외 채널 비주얼', color: '#B7791F', start: t(0), end: t(30), owner: 'm-minhyun' },
-      { id: 'p-ops', name: '팀 운영 · AI 워크플로', color: '#6B5CA5', start: t(-20), end: t(40), owner: 'm-eunseo' },
-    ];
-    const mk = (title, project, assignees, status, due, requester, notes = '', priority = '중간') =>
-      ({ id: uid(), kind: requester ? 'request' : 'project', title, project, assignees, status, due,
-         requester, priority, link: '', files: [], notes,
-         requestedAt: t(0), createdAt: new Date().toISOString(),
-         ...(status === 'done' ? { doneAt: t(-1) } : {}) });
-    const tasks = [
-      mk('엑소좀 77% 인포그래픽 최종 시안', 'p-exo', ['m-guena'], 'doing', t(0), ''),
-      mk('상세페이지 성분 섹션 카피 반영', 'p-detail', ['m-yeonwoo'], 'doing', t(1), ''),
-      mk('아마존 A+ 콘텐츠 배너 3종', 'p-global', ['m-minhyun'], 'req', t(3), ''),
-      mk('프로모션 배너 요청 (7월 기획전)', 'p-detail', ['m-yeonwoo', 'm-guena'], 'req', t(2), '마케팅팀 이지수', '메인/서브 2사이즈', '높음'),
-      mk('프롬프트 프리셋 v2 정리', 'p-ops', ['m-eunseo'], 'req', t(4), ''),
-      mk('제품 촬영 원본 셀렉', 'p-exo', ['m-guena'], 'confirm', t(1), '', '상현님 컨펌 대기'),
-      mk('인스타 릴스 커버 템플릿', 'p-global', ['m-minhyun'], 'done', t(-1), 'SNS팀 박서연'),
-    ];
-    this.db.members = m; this.db.projects = p; this.db.tasks = tasks;
-    this.db.seeded = true;
-    this.save({ push: false });
   }
 }
 

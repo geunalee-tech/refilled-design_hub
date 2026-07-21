@@ -23,18 +23,14 @@ export function renderSettings(main) {
         <button class="btn sm" id="s-madd">추가</button></div>
     </div></div>
 
-    <div class="card"><div class="card-h"><h3>팀 공유 동기화 (GitHub)</h3></div><div class="card-b">
-      <div class="field"><label>저장소 (owner/repo)</label><input id="s-repo" value="${esc(s.repo)}" placeholder="예: refilled-design/hub"></div>
-      <div class="frow">
-        <div class="field"><label>브랜치</label><input id="s-branch" value="${esc(s.branch)}" placeholder="main"></div>
-        <div class="field"><label>GitHub 토큰 (fine-grained PAT)</label><input id="s-token" type="password" value="${esc(s.githubToken)}" placeholder="github_pat_..."></div></div>
+    <div class="card"><div class="card-h"><h3>팀 공유 동기화 (Supabase)</h3></div><div class="card-b">
+      <p class="hint" style="margin-top:0">사내 로그인(Cloudflare Access)만 돼 있으면 자동으로 연결돼요 — 토큰·설정이 필요 없어요.
+        현재 상태: <b id="s-sync-state">${store.hasRemote() ? '연결됨 ✓' : '로컬 모드'}</b>${store.serverDetail ? `<br><span class="muted">${esc(store.serverDetail)}</span>` : ''}</p>
       <div style="display:flex;gap:8px">
-        <button class="btn primary" id="s-sync-save">저장 후 연결 테스트</button>
-        <button class="btn" id="s-pull">지금 불러오기</button>
-        <button class="btn" id="s-push">지금 올리기</button>
+        <button class="btn primary" id="s-pull">지금 불러오기</button>
         <button class="btn" id="s-diag">동기화 진단</button></div>
       <pre id="s-diag-out" style="display:none;background:#F6F7F9;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.7;white-space:pre-wrap;margin-top:8px"></pre>
-      <div class="ai-note"><b>이제 개인 토큰은 선택사항이에요.</b> 구글 로그인이 켜진 배포에서는 서버가 팀 공용 토큰으로 자동 동기화해서, 이 칸을 비워둬도 팀 동기화가 됩니다. 직접 넣을 경우 이 저장소 하나에 <b>Contents: Read and write</b> 권한만 주면 돼요.</div>
+      <div class="ai-note">연결이 안 되면 새 탭에서 <a href="https://data.constanthub.kr" target="_blank" rel="noopener"><b>data.constanthub.kr</b></a>에 사내 이메일로 로그인한 뒤 "지금 불러오기"를 눌러주세요.</div>
     </div></div>
 
     <div class="card"><div class="card-h"><h3>AI 기능</h3></div><div class="card-b">
@@ -53,7 +49,7 @@ export function renderSettings(main) {
         <button class="btn primary" id="s-slack-save">저장</button>
         <button class="btn" id="s-slack-test">테스트 전송</button>
       </div>
-      <p class="hint">새 <b>요청 업무</b>가 등록되면 디자인팀 채널로 알림이 가요. 웹훅은 팀 공유 데이터에 저장돼 팀원 모두에게 적용됩니다. 발급: Slack 앱 → <b>Incoming Webhooks</b> → 채널 선택 → URL 복사. 저장소가 Public이면 웹훅이 노출될 수 있으니 Private 저장소를 권장해요.</p>
+      <p class="hint">새 <b>요청 업무</b>가 등록되면 디자인팀 채널로 알림이 가요. 웹훅은 팀 공유 데이터(Supabase, 사내 구성원만 접근)에 저장돼 팀원 모두에게 적용됩니다. 발급: Slack 앱 → <b>Incoming Webhooks</b> → 채널 선택 → URL 복사.</p>
     </div></div>
 
     <div class="card"><div class="card-h"><h3>데이터 백업</h3></div><div class="card-b">
@@ -61,7 +57,7 @@ export function renderSettings(main) {
         <button class="btn" id="s-export">JSON 내보내기</button>
         <label class="btn" style="cursor:pointer">JSON 가져오기<input type="file" id="s-import" accept=".json" hidden></label>
         <button class="btn danger" id="s-reset">로컬 데이터 초기화</button></div>
-      <div class="ai-note">GitHub 동기화를 켜면 모든 변경이 커밋으로 남아 자동 백업돼요. 이 버튼들은 로컬 전용 백업용입니다.</div>
+      <div class="ai-note">팀 데이터는 Supabase에 행 단위로 저장·백업돼요. 이 버튼들은 로컬 전용 백업용입니다.</div>
     </div></div>
   </div>`;
 
@@ -78,34 +74,22 @@ export function renderSettings(main) {
     store.save(); renderSettings(main);
   });
 
-  const saveSync = () => {
-    s.repo = $('#s-repo').value.trim(); s.branch = $('#s-branch').value.trim() || 'main';
-    s.githubToken = $('#s-token').value.trim(); store.saveSettings();
-  };
-  $('#s-sync-save').onclick = async () => {
-    saveSync();
-    if (!store.hasRemote()) return toast('저장소와 토큰을 입력해주세요', true);
-    const ok = await store.pull();
-    toast(ok ? '연결 성공! 팀 데이터와 동기화됐어요' : '연결 실패 — 저장소 이름과 토큰 권한을 확인해주세요', !ok);
+  $('#s-pull').onclick = async () => {
+    const ok = await store.pull(); // 내부에서 브릿지 재연결까지 시도
+    toast(ok ? '최신 데이터를 불러왔어요' : (store.serverDetail || store.lastError || '연결 실패'), !ok);
     window.dispatchEvent(new Event('hashchange'));
   };
-  $('#s-pull').onclick = async () => { saveSync(); await store.pull(); toast('최신 데이터를 불러왔어요'); window.dispatchEvent(new Event('hashchange')); };
-  $('#s-push').onclick = async () => { saveSync(); await store.push(); toast(store.status === 'synced' ? '팀 저장소에 올렸어요' : '업로드 실패', store.status !== 'synced'); };
   $('#s-diag').onclick = async () => {
     const box = $('#s-diag-out'); box.style.display = 'block'; box.textContent = '진단 중…';
     const out = [];
     try {
-      const r = await fetch('/api/db');
+      const r = await fetch('/api/config');
       const j = await r.json().catch(() => ({}));
-      out.push(`① 서버 동기화 (/api/db): ${r.ok ? '✅ 정상' : '⛔ ' + r.status + (j.error ? ' — ' + j.error : '')}`);
-    } catch (e) { out.push('① 서버 동기화 (/api/db): ⛔ 연결 실패 — ' + e.message); }
-    out.push(`② 브라우저 토큰(레거시): ${store.legacyRemote() ? '설정됨 (' + store.settings.repo + ')' : '없음 (서버 동기화 사용 시 불필요)'}`);
-    if (store.legacyRemote()) {
-      try { const r = await fetch(store.ghUrl(), { headers: store.ghHeaders() }); out.push(`③ GitHub 직접 접근: ${r.ok ? '✅ 정상' : '⛔ ' + r.status + (r.status === 401 ? ' (토큰 만료/오류)' : '')}`); }
-      catch { out.push('③ GitHub 직접 접근: ⛔ 연결 실패 (네트워크/확장프로그램)'); }
-    }
-    out.push(`④ 현재 모드: ${store.serverMode === true ? '서버 동기화' : store.serverMode === false ? (store.legacyRemote() ? '레거시(브라우저 토큰)' : '로컬') : '미확인'} · 상태: ${store.status}${store.lastError ? ' · 마지막 오류: ' + store.lastError : ''}`);
-    out.push(`⑤ 멤버 수: ${store.db.members.length}명 (${store.db.members.map(m => m.name).join(', ')})`);
+      out.push(`① 연결 정보 (/api/config): ${r.ok ? '✅ 정상' : '⛔ ' + r.status + (j.error ? ' — ' + j.error : '')}`);
+    } catch (e) { out.push('① 연결 정보 (/api/config): ⛔ 연결 실패 — ' + e.message); }
+    out.push(`② 사내 인증 브릿지: ${store.hasRemote() ? '✅ 세션 있음' : '⛔ ' + (store.serverDetail || '미연결')}`);
+    out.push(`③ 현재 모드: ${store.hasRemote() ? 'Supabase 팀 동기화' : '로컬'} · 상태: ${store.status}${store.lastError ? ' · 마지막 오류: ' + store.lastError : ''}`);
+    out.push(`④ 멤버 수: ${store.db.members.length}명 (${store.db.members.map(m => m.name).join(', ')})`);
     box.textContent = out.join('\n');
   };
 
@@ -145,7 +129,7 @@ export function renderSettings(main) {
     r.readAsText(f);
   };
   $('#s-reset').onclick = () => {
-    if (!confirm('이 브라우저의 로컬 데이터를 모두 지울까요? (GitHub의 팀 데이터는 유지됩니다)')) return;
+    if (!confirm('이 브라우저의 로컬 데이터를 모두 지울까요? (Supabase의 팀 데이터는 유지됩니다)')) return;
     localStorage.removeItem('rfhub_db_v1'); location.reload();
   };
 }

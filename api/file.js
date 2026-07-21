@@ -1,9 +1,21 @@
 /* api/file.js — 첨부파일 서버 업로드/다운로드 (files/ 폴더 커밋)
  * POST {name, base64} → {name, url, path}
  * GET ?path=files/... → {contentB64}
- * api/db.js와 동일한 환경변수·쿠키 인증을 사용해요.
+ * api/db.js와 동일한 인증(Cloudflare Access 검증, 전환기엔 구 쿠키 폴백)을 사용해요.
  */
 import crypto from 'crypto';
+import { verifyCfAccess } from './_lib/cf-access.js';
+
+/* 인증: CF Access JWT 우선, CF 미설정(전환기)일 때만 구 쿠키 임시 허용 (api/db.js와 동일) */
+async function requireUser(req) {
+  const cf = await verifyCfAccess(req);
+  if (cf.ok) {
+    const e = cf.payload?.email || '';
+    return { e, n: e.split('@')[0] };
+  }
+  if (!cf.configured) return sessionUser(req);
+  return null;
+}
 
 const REPO = () => process.env.GITHUB_REPO || 'geunalee-tech/refilled-design_hub';
 const BRANCH = () => process.env.GITHUB_BRANCH || 'main';
@@ -37,8 +49,8 @@ const gh = (path, init = {}) => fetch(`https://api.github.com/repos/${REPO()}/co
 export default async function handler(req, res) {
   if (!process.env.GITHUB_TOKEN)
     return res.status(503).json({ error: 'GITHUB_TOKEN 환경변수가 설정되지 않았어요.' });
-  const user = sessionUser(req);
-  if (!user) return res.status(401).json({ error: '로그인이 필요해요.' });
+  const user = await requireUser(req);
+  if (!user) return res.status(401).json({ error: '사내 로그인이 필요해요.' });
 
   if (req.method === 'POST') {
     const { name, base64 } = req.body || {};

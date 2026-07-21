@@ -1,17 +1,31 @@
 /* api/db.js — 팀 DB(data/db.json) 서버 동기화
- * 로그인한 멤버(hub_s 쿠키)라면 누구나, 브라우저에 GitHub 토큰 없이 동기화돼요.
+ * Cloudflare Access를 통과한 사내 구성원이라면 누구나, 브라우저에 GitHub 토큰 없이 동기화돼요.
  * 서버가 팀 공용 토큰(GITHUB_TOKEN 환경변수)으로 GitHub를 대신 읽고 써요.
  *
  * 필요한 환경변수:
  *  GITHUB_TOKEN  = fine-grained PAT (이 저장소에 Contents: Read and write)
  *  GITHUB_REPO   = (선택) owner/repo — 기본값: geunalee-tech/refilled-design_hub
  *  GITHUB_BRANCH = (선택) 기본값 main
- *  SESSION_SECRET = 로그인에서 이미 사용 중인 값 (쿠키 검증용)
+ *  CF_ACCESS_TEAM_DOMAIN / CF_ACCESS_AUD = Cloudflare Access 검증용 (middleware.js와 동일)
+ *  SESSION_SECRET = (전환기 임시) CF 미설정 시 구 로그인 쿠키 검증용 — CF 적용 후 제거
  */
 import crypto from 'crypto';
+import { verifyCfAccess } from './_lib/cf-access.js';
 
 const REPO = () => process.env.GITHUB_REPO || 'geunalee-tech/refilled-design_hub';
 const BRANCH = () => process.env.GITHUB_BRANCH || 'main';
+
+/* 인증: CF Access JWT 우선 검증.
+ * CF 미설정(전환기)일 때만 구 구글 로그인 쿠키(hub_s)를 임시 허용 — CF 적용 후 이 폴백 제거 */
+async function requireUser(req) {
+  const cf = await verifyCfAccess(req);
+  if (cf.ok) {
+    const e = cf.payload?.email || '';
+    return { e, n: e.split('@')[0] };
+  }
+  if (!cf.configured) return sessionUser(req); // 레거시 폴백 (전환기 전용)
+  return null;
+}
 
 function sessionUser(req) {
   const secret = process.env.SESSION_SECRET;
@@ -42,8 +56,8 @@ const gh = (path, init = {}) => fetch(`https://api.github.com/repos/${REPO()}/co
 export default async function handler(req, res) {
   if (!process.env.GITHUB_TOKEN)
     return res.status(503).json({ error: 'GITHUB_TOKEN 환경변수가 설정되지 않았어요.' });
-  const user = sessionUser(req);
-  if (!user) return res.status(401).json({ error: '로그인이 필요해요.' });
+  const user = await requireUser(req);
+  if (!user) return res.status(401).json({ error: '사내 로그인이 필요해요.' });
 
   if (req.method === 'GET') {
     const r = await gh(`data/db.json?ref=${BRANCH()}`);

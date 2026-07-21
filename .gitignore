@@ -1,0 +1,43 @@
+# ── 시크릿 · 환경변수 (절대 커밋 금지 — Vercel 환경변수로 관리) ──
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+*.pem
+*.key
+*secret*
+*credentials*
+
+# 데이터 이관용 로컬 환경파일 (pms 방식 마이그레이션 대비)
+.env.migrate
+
+# ── Vercel 로컬 연결 정보 (프로젝트 ID 포함) ──
+.vercel
+
+# ── 의존성 · 빌드 산출물 ──
+node_modules/
+dist/
+.output/
+
+# ── Supabase CLI 로컬 상태 (스키마 .sql은 커밋 대상 — supabase/*.sql은 유지) ──
+supabase/.temp/
+supabase/.branches/
+
+# ── OS · 에디터 ──
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ── Claude Code 개인 설정 (팀 공유 설정 .claude/settings.json은 커밋 가능) ──
+.claude/settings.local.json
+
+# ── 로그 · 임시 파일 ──
+*.log
+tmp/
+scratch/
+.env*
+!.env.example
+!.env.*.example

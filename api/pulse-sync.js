@@ -3,41 +3,32 @@
  * 매주 월요일 14:00 KST (vercel.json crons "0 5 * * 1")에 실행:
  *  1) 노션 "회의" DB에서 제목에 '디자인 펄스'가 들어간 최신 회의록 조회
  *  2) 본문 블록 → 마크다운 텍스트 변환 (이미지 제외 — 만료되는 서명 URL이라)
- *  3) data/db.json의 rituals에 type:'pulse' 문서로 업서트 (노션 최종 수정시각 기준 갱신)
+ *  3) Supabase rituals 테이블에 type:'pulse' 행으로 업서트 (노션 최종 수정시각 기준 갱신)
  *
  * 수동 실행: GET /api/pulse-sync?key=SYNC_SECRET (허브의 "지금 동기화" 버튼)
  *
  * 필요한 Vercel 환경변수:
  *  NOTION_TOKEN  — 노션 인테그레이션 시크릿 (회의 DB에 연결돼 있어야 함)
- *  GH_TOKEN / GH_REPO / GH_BRANCH / SYNC_SECRET — notion-sync.js와 동일
+ *  SUPABASE_URL / SUPABASE_SERVICE_KEY / SYNC_SECRET — notion-sync.js와 동일
  *  PULSE_DB      — (선택) 회의 데이터베이스 ID. 기본: 2cef27f09cd64a2497ab51aed5be4829
  */
 
-const GH_API = 'https://api.github.com';
 const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VER = '2022-06-28';
 const DEFAULT_DB = '2cef27f09cd64a2497ab51aed5be4829'; // C-Tribe "회의" DB
 
-/* ── GitHub db.json 읽기/쓰기 (notion-sync.js와 동일 패턴) ── */
-async function ghGet(repo, branch, token) {
-  const res = await fetch(`${GH_API}/repos/${repo}/contents/data/db.json?ref=${branch}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+/* ── Supabase REST (행 단위 접근 — notion-sync.js와 동일 패턴) ── */
+async function sb(path, init = {}) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json',
+      ...(init.headers || {}),
+    },
   });
-  if (!res.ok) throw new Error('GitHub 읽기 실패 ' + res.status);
-  const json = await res.json();
-  return { sha: json.sha, db: JSON.parse(Buffer.from(json.content, 'base64').toString('utf8')) };
-}
-async function ghPut(repo, branch, token, db, sha) {
-  const res = await fetch(`${GH_API}/repos/${repo}/contents/data/db.json`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    body: JSON.stringify({
-      message: 'hub: 디자인 펄스 회의록 자동 아카이브',
-      content: Buffer.from(JSON.stringify(db, null, 2), 'utf8').toString('base64'),
-      branch, sha,
-    }),
-  });
-  if (!res.ok) throw new Error('GitHub 쓰기 실패 ' + res.status);
+  if (!r.ok) throw new Error(`Supabase ${path.split('?')[0]} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  return r;
 }
 
 /* ── 노션: 회의 DB에서 디자인 펄스 회의록 조회 ── */
@@ -94,54 +85,57 @@ async function blocksToMd(token, blockId, depth = 0) {
 }
 
 export default async function handler(req, res) {
-  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', NOTION_TOKEN, SYNC_SECRET, PULSE_DB } = process.env;
+  const { SUPABASE_URL, SUPABASE_SERVICE_KEY, NOTION_TOKEN, SYNC_SECRET, PULSE_DB } = process.env;
 
   /* 인증: Vercel 크론 헤더 또는 ?key=SYNC_SECRET */
   const isCron = !!req.headers['x-vercel-cron'];
   const keyOk = SYNC_SECRET && req.query && req.query.key === SYNC_SECRET;
   if (!isCron && !keyOk) return res.status(401).json({ error: '인증 실패 — ?key= 값을 확인해주세요' });
 
-  if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: '환경변수(GH_TOKEN/GH_REPO) 미설정' });
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return res.status(500).json({ error: '환경변수(SUPABASE_URL/SUPABASE_SERVICE_KEY) 미설정' });
   if (!NOTION_TOKEN) return res.status(500).json({ error: 'NOTION_TOKEN 미설정 — 노션 인테그레이션 시크릿을 Vercel에 추가해주세요' });
 
   try {
     const pages = await queryPulsePages(NOTION_TOKEN, PULSE_DB || DEFAULT_DB);
     let added = 0, updated = 0;
 
-    /* 커밋 충돌 시 1회 재시도 */
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const { sha, db } = await ghGet(GH_REPO, GH_BRANCH, GH_TOKEN);
-      db.rituals = db.rituals || [];
-      added = 0; updated = 0;
+    // 기존 펄스 문서(노션 미러링분)를 한 번에 조회 — id는 'np_' + 노션 페이지 UUID
+    const ids = pages.map(p => 'np_' + p.id.replace(/-/g, ''));
+    const existingRows = ids.length
+      ? await (await sb(`rituals?id=in.(${ids.map(encodeURIComponent).join(',')})&select=id,data`)).json()
+      : [];
+    const existingById = Object.fromEntries(existingRows.map(r => [r.id, r.data]));
 
-      for (const page of pages) {
-        const id = 'np_' + page.id.replace(/-/g, '');
-        const title = (page.properties?.['이름']?.title || []).map(t => t.plain_text).join('') || '주간 디자인 펄스';
-        const date = page.properties?.['미팅 시간']?.date?.start
-          || (page.created_time || '').slice(0, 10);
-        const edited = page.last_edited_time || new Date().toISOString();
-        const existing = db.rituals.find(r => r.id === id);
-        if (existing && existing.mt === edited) continue; // 변경 없음
+    const upserts = [];
+    for (const page of pages) {
+      const id = 'np_' + page.id.replace(/-/g, '');
+      const title = (page.properties?.['이름']?.title || []).map(t => t.plain_text).join('') || '주간 디자인 펄스';
+      const date = page.properties?.['미팅 시간']?.date?.start
+        || (page.created_time || '').slice(0, 10);
+      const edited = page.last_edited_time || new Date().toISOString();
+      const existing = existingById[id];
+      if (existing && existing.mt === edited) continue; // 변경 없음
 
-        const md = (await blocksToMd(NOTION_TOKEN, page.id)).trim().slice(0, 12000);
-        const doc = {
-          id, type: 'pulse', date, title,
-          author: '노션 자동 아카이브',
-          createdAt: existing ? existing.createdAt : new Date().toISOString(),
-          syncedAt: new Date().toISOString(),
-          mt: edited, // 노션 최종 수정시각 — 허브 병합에서도 최신 기준으로 동작
-          data: { md, notionUrl: page.url || `https://www.notion.so/${page.id.replace(/-/g, '')}` },
-        };
-        if (existing) { Object.assign(existing, doc); updated++; }
-        else { db.rituals.push(doc); added++; }
-      }
-
-      if (!added && !updated) return res.status(200).json({ ok: true, added: 0, updated: 0, note: '변경 없음' });
-      db.updatedAt = new Date().toISOString();
-      try { await ghPut(GH_REPO, GH_BRANCH, GH_TOKEN, db, sha); break; }
-      catch (e) { if (attempt === 1) throw e; }
+      const md = (await blocksToMd(NOTION_TOKEN, page.id)).trim().slice(0, 12000);
+      const doc = {
+        id, type: 'pulse', date, title,
+        author: '노션 자동 아카이브',
+        createdAt: existing ? existing.createdAt : new Date().toISOString(),
+        syncedAt: new Date().toISOString(),
+        mt: edited, // 노션 최종 수정시각 기준 갱신
+        data: { md, notionUrl: page.url || `https://www.notion.so/${page.id.replace(/-/g, '')}` },
+      };
+      upserts.push({ id, data: doc });
+      existing ? updated++ : added++;
     }
-    return res.status(200).json({ ok: true, added, updated });
+
+    if (upserts.length) {
+      await sb('rituals?on_conflict=id', {
+        method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(upserts),
+      });
+    }
+    return res.status(200).json({ ok: true, added, updated, ...(upserts.length ? {} : { note: '변경 없음' }) });
   } catch (e) {
     return res.status(500).json({ error: String(e.message || e) });
   }

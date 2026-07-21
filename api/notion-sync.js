@@ -2,20 +2,41 @@
  *
  * 노션 데이터베이스 자동화("페이지 추가됨 → 웹훅 전송")가 이 엔드포인트를 호출하면:
  *  1) 노션 페이지 속성을 허브 업무 형식으로 변환
- *  2) 저장소 data/db.json에 업무 추가 (중복 방지: notionId)
+ *  2) Supabase tasks 테이블에 행 추가 (중복 방지: notionId)
  *  3) 슬랙 채널로 등록 알림 발송
  *
  * 필요한 Vercel 환경변수:
- *  GH_TOKEN      — 저장소 쓰기 가능한 fine-grained PAT (Contents: Read and write)
- *  GH_REPO       — 예: geunalee-tech/refilled-design_hub
- *  GH_BRANCH     — 기본 main
+ *  SUPABASE_URL / SUPABASE_SERVICE_KEY — 팀 Supabase (service 키는 서버 전용, RLS 우회)
  *  SLACK_WEBHOOK — https://hooks.slack.com/services/...
  *  SYNC_SECRET   — 임의의 긴 문자열 (웹훅 URL의 ?key= 와 일치해야 동작)
  */
 
-const GH_API = 'https://api.github.com';
 const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VER = '2022-06-28';
+
+/* ── Supabase REST (행 단위 접근 — 통짜 JSON 저장 금지, 사내 표준) ── */
+async function sb(path, init = {}) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json',
+      ...(init.headers || {}),
+    },
+  });
+  if (!r.ok) throw new Error(`Supabase ${path.split('?')[0]} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  return r;
+}
+const sbFindByNotion = async notionId =>
+  (await (await sb(`tasks?data->>notionId=eq.${encodeURIComponent(notionId)}&select=id,data`)).json())[0] || null;
+const sbUpsertTask = task =>
+  sb('tasks?on_conflict=id', {
+    method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify([{ id: String(task.id), data: task }]),
+  });
+const sbDeleteTask = id => sb(`tasks?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+const sbMembers = async () =>
+  (await (await sb('members?select=data')).json()).map(r => r.data);
 
 /* ── 노션 API: 페이지 속성 + 본문 텍스트 가져오기 (NOTION_TOKEN 설정 시) ── */
 async function fetchNotionPage(pageId, token) {
@@ -106,27 +127,6 @@ function mapTask(page) {
   };
 }
 
-/* ── GitHub db.json 읽기/쓰기 ── */
-async function ghGet(repo, branch, token) {
-  const res = await fetch(`${GH_API}/repos/${repo}/contents/data/db.json?ref=${branch}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-  });
-  if (!res.ok) throw new Error('db.json 읽기 실패 ' + res.status);
-  const json = await res.json();
-  return { sha: json.sha, db: JSON.parse(Buffer.from(json.content, 'base64').toString('utf-8')) };
-}
-async function ghPut(repo, branch, token, db, sha) {
-  const res = await fetch(`${GH_API}/repos/${repo}/contents/data/db.json`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    body: JSON.stringify({
-      message: 'hub: 노션 요청 미러링', branch, sha,
-      content: Buffer.from(JSON.stringify(db, null, 2)).toString('base64'),
-    }),
-  });
-  if (!res.ok) throw new Error('db.json 쓰기 실패 ' + res.status);
-}
-
 /* ── 슬랙 알림 (허브와 동일한 Block Kit 포맷) ── */
 // SLACK_USER_MAP 환경변수(JSON: {"이름":"U0XXXXXXX"})에 등록된 사람은 진짜 @멘션, 없으면 이름 표기
 function mentionName(name, userMap) {
@@ -200,11 +200,11 @@ function readCheckbox(page) {
 }
 
 export default async function handler(req, res) {
-  const { GH_TOKEN, GH_REPO, GH_BRANCH = 'main', SLACK_WEBHOOK, SYNC_SECRET, NOTION_TOKEN, SLACK_USER_MAP, NOTION_SLACK_MAP, SLACK_BOT_TOKEN, SLACK_CHANNEL_ID } = process.env;
+  const { SUPABASE_URL, SUPABASE_SERVICE_KEY, SLACK_WEBHOOK, SYNC_SECRET, NOTION_TOKEN, SLACK_USER_MAP, NOTION_SLACK_MAP, SLACK_BOT_TOKEN, SLACK_CHANNEL_ID } = process.env;
   const bot = SLACK_BOT_TOKEN ? { token: SLACK_BOT_TOKEN, channel: SLACK_CHANNEL_ID } : null;
   let userMap = {}; try { userMap = JSON.parse(SLACK_USER_MAP || '{}'); } catch {}
   let notionMap = {}; try { notionMap = JSON.parse(NOTION_SLACK_MAP || '{}'); } catch {}
-  if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: '환경변수(GH_TOKEN/GH_REPO) 미설정' });
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return res.status(500).json({ error: '환경변수(SUPABASE_URL/SUPABASE_SERVICE_KEY) 미설정' });
   if (!SYNC_SECRET || req.query.key !== SYNC_SECRET) return res.status(401).json({ error: 'key 불일치' });
   if (req.method !== 'POST') return res.status(200).json({ ok: true, hint: '노션 자동화 웹훅용 엔드포인트예요' });
 
@@ -227,24 +227,18 @@ export default async function handler(req, res) {
     /* ── 체크 해제 = 요청 회수: 슬랙 메시지 삭제 + (아직 요청 상태면) 업무 제거 ── */
     const cb = readCheckbox(page);
     if (cb && !cb.checked && page.id) {
+      const row = await sbFindByNotion(page.id);
+      if (!row) return res.status(200).json({ ok: true, recalled: false, note: '미러링된 업무가 없어요' });
+      const t = row.data;
       let recalled = false, removed = false;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const { sha, db } = await ghGet(GH_REPO, GH_BRANCH, GH_TOKEN);
-        const t = (db.tasks || []).find(x => x.notionId === page.id);
-        if (!t) return res.status(200).json({ ok: true, recalled: false, note: '미러링된 업무가 없어요' });
-        if (t.slackTs) {
-          recalled = await deleteSlackMessage(bot, t.slackChannel || SLACK_CHANNEL_ID, t.slackTs).catch(() => false);
-        }
-        let changed = false;
-        if (t.status === 'req') { // 아직 착수 전이면 보드에서도 제거
-          db.tasks = db.tasks.filter(x => x.notionId !== page.id); removed = true; changed = true;
-        } else if (recalled) { // 진행 중이면 업무는 유지, 회수 표시만
-          delete t.slackTs; delete t.slackChannel; t.mt = new Date().toISOString(); changed = true;
-        }
-        if (!changed) break;
-        db.updatedAt = new Date().toISOString();
-        try { await ghPut(GH_REPO, GH_BRANCH, GH_TOKEN, db, sha); break; }
-        catch (e) { if (attempt === 1) throw e; }
+      if (t.slackTs) {
+        recalled = await deleteSlackMessage(bot, t.slackChannel || SLACK_CHANNEL_ID, t.slackTs).catch(() => false);
+      }
+      if (t.status === 'req') { // 아직 착수 전이면 보드에서도 제거
+        await sbDeleteTask(row.id); removed = true;
+      } else if (recalled) { // 진행 중이면 업무는 유지, 회수 표시만
+        delete t.slackTs; delete t.slackChannel; t.mt = new Date().toISOString();
+        await sbUpsertTask(t);
       }
       return res.status(200).json({ ok: true, recalled, removed,
         note: recalled ? '슬랙 알림을 회수했어요' : '슬랙 회수 실패 또는 회수 불가(웹훅 방식 메시지)' });
@@ -268,27 +262,23 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, skipped: '제목이 비어 있어 건너뛰었어요 (작성 완료 후 전송해주세요)' });
     }
 
+    // 중복 방지: 이미 미러링된 노션 페이지면 건너뛰어요
+    if (task.notionId && await sbFindByNotion(task.notionId)) {
+      return res.status(200).json({ ok: true, skipped: '이미 미러링된 페이지' });
+    }
+
     // 슬랙 알림을 먼저 보내 메시지 ID(ts)를 받아둬요 — 나중에 회수할 때 필요
     const boardUrl = `https://${req.headers.host}/#/tasks/requests`;
     const sent = await notifySlack(SLACK_WEBHOOK, task, boardUrl, userMap, notionMap, bot).catch(() => null);
     if (sent?.ts) { task.slackTs = sent.ts; task.slackChannel = sent.channel; }
 
-    // db.json 갱신 (sha 충돌 시 1회 재시도)
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const { sha, db } = await ghGet(GH_REPO, GH_BRANCH, GH_TOKEN);
-      if (task.notionId && (db.tasks || []).some(t => t.notionId === task.notionId)) {
-        return res.status(200).json({ ok: true, skipped: '이미 미러링된 페이지' });
-      }
-      // 담당자 이름 → 허브 멤버 매칭
-      task.assignees = (db.members || [])
-        .filter(m => task._designerNames?.some(n => n.includes(m.name) || m.name.includes(n)))
-        .map(m => m.id);
-      const { _designerNames, _planners, _planLink, _notionUrl, ...clean } = task;
-      db.tasks = db.tasks || []; db.tasks.push(clean);
-      db.updatedAt = new Date().toISOString();
-      try { await ghPut(GH_REPO, GH_BRANCH, GH_TOKEN, db, sha); break; }
-      catch (e) { if (attempt === 1) throw e; }
-    }
+    // 담당자 이름 → 허브 멤버 매칭 후 행 추가
+    const members = await sbMembers().catch(() => []);
+    task.assignees = members
+      .filter(m => task._designerNames?.some(n => n.includes(m.name) || m.name.includes(n)))
+      .map(m => m.id);
+    const { _designerNames, _planners, _planLink, _notionUrl, ...clean } = task;
+    await sbUpsertTask(clean);
 
     return res.status(200).json({ ok: true, task: task.title, slack: sent?.ts ? 'bot(회수 가능)' : 'webhook(회수 불가)' });
   } catch (e) {

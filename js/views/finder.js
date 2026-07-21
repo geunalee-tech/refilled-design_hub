@@ -7,23 +7,11 @@ let index = null; // [{path, name, ext, size, mtime}]
 
 async function loadIndex() {
   if (index) return index;
-  // 1) 같은 저장소에 배포된 data/fileindex.json 시도
+  // 같은 저장소에 배포된 data/fileindex.json (tools/build_index.py가 생성)
   try {
     const res = await fetch('data/fileindex.json', { cache: 'no-store' });
     if (res.ok) { index = await res.json(); return index; }
   } catch {}
-  // 2) GitHub API 시도 (설정된 경우)
-  if (store.hasRemote()) {
-    try {
-      const url = `https://api.github.com/repos/${store.settings.repo}/contents/data/fileindex.json?ref=${store.settings.branch || 'main'}`;
-      const res = await fetch(url, { headers: store.ghHeaders() });
-      if (res.ok) {
-        const j = await res.json();
-        index = JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g, '')))));
-        return index;
-      }
-    } catch {}
-  }
   return null;
 }
 
