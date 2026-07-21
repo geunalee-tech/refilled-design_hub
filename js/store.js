@@ -174,8 +174,8 @@ class Store {
     try {
       const { me, members } = await fetchDirectory();
       this._directory = members; // 슬랙 멘션용 전 구성원 캐시
-      if (me?.name && !this.settings.userName) {
-        this.settings.userName = me.name; this.saveSettings();
+      if (me?.name && this.settings.userName !== me.name) {
+        this.settings.userName = me.name; this.saveSettings(); // 디렉토리가 원천 — 항상 동기화
       }
       const design = members.filter(m => (m.teamName || '').includes('디자인'));
       if (design.length) { // 필터 결과가 비면 건드리지 않음 (안전)

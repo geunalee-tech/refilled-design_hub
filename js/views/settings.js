@@ -10,7 +10,8 @@ export function renderSettings(main) {
 
   <div class="grid2">
     <div class="card"><div class="card-h"><h3>내 정보 · 팀원</h3></div><div class="card-b">
-      <div class="field"><label>내 이름 (문서 작성자·대시보드 인사에 표시 — 사내 디렉토리에서 자동)</label><input id="s-name" value="${esc(s.userName)}" placeholder="자동으로 채워져요"></div>
+      <div class="field"><label>내 이름 (문서 작성자·대시보드 인사에 표시)</label>
+        <div class="gt" style="padding:8px 2px">${esc(s.userName) || '<span class="muted">사내 로그인 후 디렉토리에서 자동으로 채워져요</span>'}</div></div>
       <label style="font-size:11.5px;font-weight:600;color:var(--muted)">팀원 목록 <span style="font-weight:400">(사내 디렉토리 자동 동기화)</span></label>
       <div id="s-members" style="margin:8px 0">
         ${db.members.map(m => `<div class="goal-row" data-mid="${m.id}">
@@ -39,16 +40,13 @@ export function renderSettings(main) {
       <p class="hint">새 <b>요청 업무</b>가 등록되면 디자인팀 채널로 알림이 가요. 웹훅은 팀 공유 데이터(Supabase, 사내 구성원만 접근)에 저장돼 팀원 모두에게 적용됩니다. 발급: Slack 앱 → <b>Incoming Webhooks</b> → 채널 선택 → URL 복사.</p>
     </div></div>
 
-    <div class="card"><div class="card-h"><h3>데이터 백업</h3></div><div class="card-b">
+    <div class="card"><div class="card-h"><h3>문제 해결</h3></div><div class="card-b">
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" id="s-export">JSON 내보내기</button>
-        <label class="btn" style="cursor:pointer">JSON 가져오기<input type="file" id="s-import" accept=".json" hidden></label>
-        <button class="btn danger" id="s-reset">로컬 데이터 초기화</button></div>
-      <div class="ai-note">팀 데이터는 Supabase에 행 단위로 저장·백업돼요. 이 버튼들은 로컬 전용 백업용입니다.</div>
+        <button class="btn danger" id="s-reset">서버에서 다시 불러오기</button></div>
+      <div class="ai-note">팀 데이터는 Supabase에 저장·백업돼요. 화면이 이상하거나 데이터가 안 맞아 보이면 <b>"서버에서 다시 불러오기"</b>를 눌러주세요 — 이 브라우저의 캐시를 지우고 팀 데이터를 처음부터 다시 받아와요 (팀 데이터는 안전해요). 내보내기는 데이터를 파일로 뽑아 볼 때 쓰는 버튼이에요.</div>
     </div></div>
   </div>`;
-
-  $('#s-name').onchange = e => { s.userName = e.target.value.trim(); store.saveSettings(); toast('저장했어요'); };
 
   $('#s-akey-save').onclick = () => {
     s.geminiKey = $('#s-gkey').value.trim();
@@ -76,17 +74,8 @@ export function renderSettings(main) {
     a.href = URL.createObjectURL(blob); a.download = `refilled-hub-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
   };
-  $('#s-import').onchange = e => {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      try { store.db = JSON.parse(r.result); store.save(); toast('가져오기 완료'); renderSettings(main); }
-      catch { toast('JSON 형식이 올바르지 않아요', true); }
-    };
-    r.readAsText(f);
-  };
   $('#s-reset').onclick = () => {
-    if (!confirm('이 브라우저의 로컬 데이터를 모두 지울까요? (Supabase의 팀 데이터는 유지됩니다)')) return;
+    if (!confirm('이 브라우저의 캐시를 지우고 팀 데이터를 서버에서 다시 받아올까요? (팀 데이터는 유지됩니다)')) return;
     localStorage.removeItem('rfhub_db_v1'); location.reload();
   };
 }
