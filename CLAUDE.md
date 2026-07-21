@@ -11,7 +11,11 @@
 
 ## 이 프로젝트가 뭔가
 
-리필드 디자인팀의 업무 허브 — 대시보드 · 업무 보드 · 위클리 리추얼 · 파일 아카이브 · AI 스튜디오 · 파일 파인더.
+리필드 디자인팀의 업무 허브 — 대시보드 · 업무 보드 · 위클리 리추얼 · 아카이브(최종 파일·인사이트) · AI 스튜디오 · 파일 파인더.
+
+- 아카이브(`js/views/archive.js`)는 탭 2개: **최종 파일 아카이브**(기존)와 **인사이트 아카이브**(게시판 — URL·제목·태그라인·메모).
+  둘 다 `archive` 테이블 공유, 인사이트는 `kind:'insight'`로 구분(새 테이블 없이 동기화 안전). 인사이트 생성·수정·삭제는
+  디자인팀만(`store.isDesignTeam()` = `/me` teamName '디자인' 포함, UI 게이트), 읽기는 로그인 전원.
 
 - 정적 HTML/JS (`index.html`, `js/`) + Vercel 배포, `api/`에 서버리스 함수 (Notion 동기화, Slack 웹훅, 크론 등)
 - 인증: Cloudflare Zero Trust(Access)가 앞단에서 로그인 처리, `middleware.js`와 `api/_lib/cf-access.js`가 CF 서명(JWT)을 검증해 vercel.app 우회 접근 차단 (표준 방식)

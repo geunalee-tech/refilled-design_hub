@@ -40,6 +40,7 @@ class Store {
     this.status = 'local';    // local | synced | syncing | error
     this.serverDetail = '';   // 로컬 모드인 이유 (배지 안내용)
     this.lastError = '';
+    this.me = null;           // 사내 디렉토리 /me (현재 접속자) — 디자인팀 판별 등에 사용
     this.listeners = [];
     this._pushTimer = null;
     this._pending = null;     // 아직 서버에 안 올라간 변경 묶음
@@ -175,6 +176,7 @@ class Store {
     try {
       const { me, members } = await fetchDirectory();
       this._directory = members; // 슬랙 멘션용 전 구성원 캐시
+      if (me) this.me = me;      // 디자인팀 판별용
       if (me?.name && this.settings.userName !== me.name) {
         this.settings.userName = me.name; this.saveSettings(); // 디렉토리가 원천 — 항상 동기화
       }
@@ -248,6 +250,9 @@ class Store {
   }
 
   /* ── 편의 메서드 ── */
+  /* 현재 접속자가 디자인팀인가 — /me teamName 기준. 알 수 없으면(로컬·디렉토리 미연결) 허용.
+     ⚠️ UI 편의 게이트예요(하드 보안 아님) — 데이터는 로그인 전 구성원이 접근 가능(RLS authenticated). */
+  isDesignTeam() { return this.me ? (this.me.teamName || '').includes('디자인') : true; }
   member(id) { return this.db.members.find(m => m.id === id); }
   project(id) { return this.db.projects.find(p => p.id === id); }
   memberName(id) { return this.member(id)?.name || '미지정'; }
