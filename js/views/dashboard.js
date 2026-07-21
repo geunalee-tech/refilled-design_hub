@@ -26,6 +26,19 @@ export function renderDashboard(main) {
   const requests = open.filter(t => t.kind === 'request' && t.status === 'req');
   const overdue = open.filter(t => t.due && t.due < today);
 
+  // 프로젝트 마일스톤 임박·최근 (−3 ~ +7일, 완료 하위업무 제외)
+  const tlMarkers = store.db.config?.timelineMarkers || [];
+  const mkOf = id => tlMarkers.find(m => m.id === id);
+  const msLo = todayISO(-3), msHi = todayISO(7);
+  const msAlerts = [];
+  db.projects.filter(p => !p.archived).forEach(p =>
+    db.tasks.filter(t => t.kind === 'project' && t.project === p.id && t.tlStatus !== 'done').forEach(t =>
+      (t.milestones || []).forEach(m => {
+        if (m.date && m.date >= msLo && m.date <= msHi)
+          msAlerts.push({ date: m.date, proj: p.name, task: t.title, mk: mkOf(m.typeId), assignees: t.assignees || [], overdue: m.date < today });
+      })));
+  msAlerts.sort((a, b) => (a.date < b.date ? -1 : 1));
+
   // 예정 일정: 향후 7일 due 기준 그룹
   const upcoming = {};
   for (let i = 0; i <= 7; i++) {
@@ -101,8 +114,17 @@ export function renderDashboard(main) {
       <div class="d-stat"><b>${requests.length}</b><span>요청 업무</span></div>
       <div class="d-stat ${confirm.length ? 'warn' : ''}"><b>${confirm.length}</b><span>컨펌중</span></div>
       <div class="d-stat ${overdue.length ? 'warn' : ''}"><b>${overdue.length}</b><span>기한 초과</span></div>
+      <div class="d-stat ${msAlerts.length ? 'warn' : ''}"><b>${msAlerts.length}</b><span>마일스톤 임박</span></div>
     </div>
   </div>
+
+  ${msAlerts.length ? `<div class="card" style="margin-bottom:20px"><div class="card-h"><h3>🔔 프로젝트 마일스톤</h3><span class="sub">임박·최근 (−3 ~ +7일) · 클릭 시 타임라인</span></div>
+    <div class="card-b">${msAlerts.map(a => { const c = a.mk?.color || '#9AA1AC'; const nm = a.mk?.name || '일정'; return `
+      <div class="tk-row" style="cursor:pointer" onclick="location.hash='#/tasks/projects'">
+        <span style="background:${c}22;color:${c};border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;flex-shrink:0">${esc(nm)}</span>
+        <div class="tk-main"><div class="tk-title" style="font-size:13px">${esc(a.proj)} · ${esc(a.task)}</div>
+          <div class="tk-meta" style="font-size:11.5px"><b class="tk-dd ${a.overdue ? 'over' : 'warn'}">${a.date.slice(5).replace('-', '/')} · ${dday(a.date)}</b><span>${esc(store.assigneeNames({ assignees: a.assignees }))}</span></div></div>
+      </div>`; }).join('')}</div></div>` : ''}
 
   <div class="dash-cols">
     <div class="card"><div class="card-h"><h3>오늘 할 일</h3><span class="sub">${fmtDate(today)}</span></div>
