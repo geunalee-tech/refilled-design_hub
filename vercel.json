@@ -2,5 +2,11 @@
   "crons": [
     { "path": "/api/pulse-sync", "schedule": "0 5 * * 1" }
   ],
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)data' ':(exclude)files'"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)data' ':(exclude)files'",
+  "headers": [
+    { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/js/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/css/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
 }
