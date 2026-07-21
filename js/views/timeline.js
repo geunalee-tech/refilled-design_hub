@@ -114,6 +114,7 @@ export function renderTimeline(main) {
         </div>
         <div class="t2-canvas tl-cv" data-addms="${t.id}" title="빈 칸을 클릭하면 그 날짜에 마커를 추가해요" style="width:${W}px;${wkndBg};cursor:copy">
           ${lines}
+          ${(t.milestones || []).length ? '' : `<span style="position:absolute;left:${px(today) + DAY_W + 6}px;top:8px;font-size:10px;color:#B8BEC8;pointer-events:none;white-space:nowrap">← 빈 칸을 클릭해 마커 추가</span>`}
           ${(t.milestones || []).map((m, mi) => markerHtml(t.id, mi, m)).join('')}
         </div>
       </div>`;
@@ -132,7 +133,12 @@ export function renderTimeline(main) {
           </div>
           <button class="btn sm" data-doneproj="${p.id}" title="완료 처리(숨김)" style="flex-shrink:0">완료</button>
         </div>
-        <div class="t2-canvas" style="width:${W}px;${wkndBg}">${lines}</div>
+        <div class="t2-canvas" style="width:${W}px;${wkndBg}">${lines}${(() => {
+          const ms = subs.flatMap(t => (t.milestones || []).map(m => m.date)).filter(Boolean).sort();
+          if (!ms.length) return '';
+          const l = idx(ms[0]) * DAY_W, w = Math.max(DAY_W, (idx(ms[ms.length - 1]) - idx(ms[0]) + 1) * DAY_W);
+          return `<div title="전체 기간 ${ms[0]} ~ ${ms[ms.length - 1]}" style="position:absolute;top:15px;left:${l}px;width:${w}px;height:7px;border-radius:4px;background:${(p.color || '#9AA1AC')}33"></div>`;
+        })()}</div>
       </div>
       ${subRows}
     </div>`;
