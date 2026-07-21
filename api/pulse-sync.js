@@ -1,6 +1,6 @@
 /* api/pulse-sync.js — 주간 디자인 펄스 회의록 자동 아카이빙 (Vercel Serverless + Cron)
  *
- * 매주 월요일 14:00 KST (vercel.json crons "0 5 * * 1")에 실행:
+ * 매주 화요일 10:00 KST (vercel.json crons "0 1 * * 2")에 실행 — 월요일 오후 회의록 생성 다음날 수집:
  *  1) 노션 "회의" DB에서 제목에 '디자인 펄스'가 들어간 최신 회의록 조회
  *  2) 본문 블록 → 마크다운 텍스트 변환 (이미지 제외 — 만료되는 서명 URL이라)
  *  3) Supabase rituals 테이블에 type:'pulse' 행으로 업서트 (노션 최종 수정시각 기준 갱신)

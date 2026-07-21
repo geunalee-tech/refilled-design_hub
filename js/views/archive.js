@@ -211,7 +211,7 @@ function editInsight(id, main) {
     <div class="field"><label>태그 (카테고리 · 골라 쓰거나 입력해 추가)</label>
       <div id="i-tags-sel" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:6px"></div>
       <input id="i-tags-input" placeholder="태그 검색 · 새 이름 입력 후 Enter" autocomplete="off">
-      <div id="i-tags-drop" style="border:1px solid var(--line);border-radius:8px;margin-top:5px;max-height:180px;overflow:auto"></div>
+      <div id="i-tags-drop" style="display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--line);border-radius:8px;margin-top:5px;padding:8px;max-height:180px;overflow:auto"></div>
     </div>
     <div class="field"><label>URL (슬랙 메시지 · 웹사이트 등)</label><input id="i-url" value="${esc(a.url)}" placeholder="https://..."></div>
     <div class="field"><label>메모 (선택)</label><textarea id="i-notes" placeholder="왜 저장했는지 · 참고 포인트">${esc(a.notes)}</textarea></div>
@@ -232,12 +232,29 @@ function editInsight(id, main) {
       const kw = input.value.trim().toLowerCase();
       const opts = tagDefs().filter(t => !kw || t.name.toLowerCase().includes(kw));
       const exact = tagDefs().some(t => t.name.toLowerCase() === kw);
-      const row = (inner, attr) => `<div ${attr} style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12.5px">${inner}</div>`;
-      drop.innerHTML =
-        opts.map(t => row(`${tagChip(t.id)} <span style="flex:1"></span>${sel.includes(t.id) ? '<b style="color:var(--accent)">✓</b>' : ''}`, `data-optid="${t.id}"`)).join('')
-        + (kw && !exact ? row(`<span>+ "<b>${esc(input.value.trim())}</b>" 새 태그로 추가</span>`, 'data-newtag') : '')
-        + (!opts.length && !kw ? '<div class="muted" style="padding:8px 10px;font-size:11.5px">등록된 태그가 없어요 — 이름을 입력해 추가하세요</div>' : '');
-      drop.querySelectorAll('[data-optid]').forEach(el => el.onclick = () => { const idv = el.dataset.optid; sel = sel.includes(idv) ? sel.filter(x => x !== idv) : [...sel, idv]; renderSel(); renderDrop(); });
+      // 옵션을 가로 칩으로 나열 → 폭을 넘으면 다음 줄로 줄바꿈. 칩 = [선택 토글] + [✕ 삭제]
+      const optChip = t => {
+        const on = sel.includes(t.id);
+        return `<span data-optid="${t.id}" title="클릭해 선택/해제" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:${t.color}22;color:${t.color};border:1.5px solid ${on ? t.color : 'transparent'};border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600">
+          ${on ? '✓ ' : ''}${esc(t.name)}
+          <button data-deltag="${t.id}" title="태그 삭제" style="background:none;border:none;color:inherit;cursor:pointer;font-size:11px;line-height:1;padding:0;opacity:.65">✕</button>
+        </span>`;
+      };
+      const newChip = kw && !exact
+        ? `<span data-newtag style="cursor:pointer;display:inline-flex;align-items:center;background:#2563EB1a;color:#2563EB;border:1.5px dashed #2563EB;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600">+ "${esc(input.value.trim())}" 추가</span>`
+        : '';
+      drop.innerHTML = (opts.map(optChip).join('') + newChip) || '<span class="muted" style="font-size:11.5px">등록된 태그가 없어요 — 이름을 입력해 추가하세요</span>';
+      drop.querySelectorAll('[data-optid]').forEach(el => el.onclick = e => {
+        if (e.target.closest('[data-deltag]')) return; // 삭제(✕)는 토글에서 제외
+        const idv = el.dataset.optid; sel = sel.includes(idv) ? sel.filter(x => x !== idv) : [...sel, idv]; renderSel(); renderDrop();
+      });
+      drop.querySelectorAll('[data-deltag]').forEach(b => b.onclick = e => {
+        e.stopPropagation();
+        const t = tagById(b.dataset.deltag);
+        if (!confirm(`태그 "${t?.name || ''}"를 삭제할까요?\n모든 인사이트에서 제거되고 되돌릴 수 없어요.`)) return;
+        deleteTagDef(b.dataset.deltag); sel = sel.filter(x => x !== b.dataset.deltag);
+        renderSel(); renderDrop();
+      });
       const nt = drop.querySelector('[data-newtag]');
       if (nt) nt.onclick = () => { const idv = ensureTagByName(input.value); if (idv && !sel.includes(idv)) sel.push(idv); input.value = ''; store.save(); renderSel(); renderDrop(); };
     };

@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/pulse-sync", "schedule": "0 5 * * 1" }
+    { "path": "/api/pulse-sync", "schedule": "0 1 * * 2" }
   ],
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)data' ':(exclude)files'",
   "headers": [
