@@ -24,6 +24,8 @@ const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VER = '2022-06-28';
 const DEFAULT_DB = 'd67521c7b3aa437e8402912dc9b294c4'; // 🚐 디자인팀 업무 목록
 const DRY = process.argv.includes('--dry');
+// 기본: 누락분만 추가(이미 있는 notionId는 건너뜀 → 허브에서 바꾼 상태·내용 보존). --overwrite 로 전체 덮어쓰기.
+const MISSING_ONLY = !process.argv.includes('--overwrite');
 
 /* tools/.env.migrate 값을 process.env로 로드 (migrate-supabase.mjs와 동일 방식) */
 try {
@@ -163,6 +165,16 @@ async function upsertTasks(tasks) {
   if (!res.ok) throw new Error(`Supabase upsert 실패 ${res.status}: ${(await res.text()).slice(0, 300)}`);
 }
 
+/* 허브 tasks에 이미 있는 notionId 집합 (누락분만 판별용) */
+async function fetchExistingNotionIds() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tasks?select=data`, {
+    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` },
+  });
+  if (!res.ok) throw new Error(`Supabase 조회 실패 ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const rows = await res.json();
+  return new Set(rows.map(r => r.data?.notionId).filter(Boolean));
+}
+
 /* ── 실행 ── */
 console.log(`🚐 노션 → 허브 임포트  (상태: ${STATUSES.join(' / ')})${DRY ? '   [DRY RUN — 쓰기 안 함]' : ''}`);
 const pages = await queryPages();
@@ -180,6 +192,15 @@ tasks.sort((a, b) => a.status.localeCompare(b.status));
 for (const t of tasks) {
   console.log(`  [${t.status}] ${t.title}  · 요청 ${t.requester} · 마감 ${t.due || '미정'} · 링크 ${t.link ? 'O' : '-'} · 기획텍스트 ${t.notes.startsWith('(기획 텍스트 없음') ? '-' : t.notes.length + '자'}`);
 }
-if (DRY) { console.log(`\n✅ DRY RUN 완료 — 위 ${tasks.length}건이 반영될 예정이에요. 실제 반영하려면 --dry 없이 다시 실행하세요.`); process.exit(0); }
-await upsertTasks(tasks);
-console.log(`\n✅ 허브 tasks 테이블에 ${tasks.length}건 반영 완료. 허브 새로고침 후 업무 보드에서 확인하세요.`);
+if (DRY) { console.log(`\n✅ DRY RUN — 후보 ${tasks.length}건. 실제 실행 시 ${MISSING_ONLY ? '이미 있는 건 건너뛰고 누락분만 추가' : '전체 덮어쓰기(--overwrite)'}됩니다.`); process.exit(0); }
+
+let toWrite = tasks;
+if (MISSING_ONLY) {
+  const existing = await fetchExistingNotionIds();
+  toWrite = tasks.filter(t => !existing.has(t.notionId));
+  console.log(`\n· 이미 있는 ${tasks.length - toWrite.length}건은 건너뜀(허브 수정 보존) → 누락 ${toWrite.length}건만 추가`);
+  toWrite.forEach(t => console.log(`  + [${t.status}] ${t.title}`));
+}
+if (!toWrite.length) { console.log('\n✅ 추가할 누락 업무가 없어요 — 노션의 모든 업무가 이미 반영돼 있어요.'); process.exit(0); }
+await upsertTasks(toWrite);
+console.log(`\n✅ 누락 ${toWrite.length}건 추가 완료. 허브 새로고침 후 요청 업무 보드에서 확인하세요. (전체 덮어쓰기는 --overwrite)`);
