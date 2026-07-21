@@ -192,7 +192,7 @@
         "mrrc1k2kfoh4a",
         "mrrc1mw73z8xp"
       ],
-      "status": "req",
+      "status": "doing",
       "priority": "중간",
       "requester": "양지현",
       "requestedAt": "2026-07-13",
@@ -201,7 +201,7 @@
       "files": [],
       "notes": "노션 요청 DB에서 자동 등록 (기존 업무 일괄 이관)",
       "createdAt": "2026-07-16T05:40:14.000Z",
-      "mt": "2026-07-19T05:06:01.514Z"
+      "mt": "2026-07-21T00:44:41.202Z"
     },
     {
       "id": "nt_39ebd60b576280d4bad6f522d093d26f",
@@ -936,7 +936,7 @@
       "leadDays": 2
     }
   ],
-  "updatedAt": "2026-07-20T14:30:58.284Z",
+  "updatedAt": "2026-07-21T00:44:44.175Z",
   "seeded": false,
   "docs": [],
   "meta": {
