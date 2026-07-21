@@ -331,11 +331,16 @@ function wigCum(leadId, mon) {
     .filter(r => r.type === 'goals' && r.date && r.date.slice(0, 7) === m && r.date <= mon)
     .reduce((s, r) => s + (+((r.data || {}).leadWeek || {})[leadId] || 0), 0);
 }
-/* 신호등: 월 경과 페이스 대비 달성률 */
+/* 신호등: 월 경과 페이스 대비 달성률.
+   ⚠️ 누적(wigCum)·주차 라벨(wigLabel)과 동일하게 '월요일이 속한 달' 기준으로 페이스를 계산한다.
+   (일요일 달 기준으로 하면 달을 걸친 주에서 누적과 달이 어긋나 신호등이 틀림 — 예: 07/27~08/02) */
 function wigSignal(ratio, mon) {
-  const sun = new Date(wAddDays(mon, 6) + 'T00:00:00');
-  const dim = new Date(sun.getFullYear(), sun.getMonth() + 1, 0).getDate();
-  const pace = Math.min(1, sun.getDate() / dim);
+  const [y, m] = mon.split('-').map(Number);        // 월요일의 연·월(기준 달)
+  const dim = new Date(y, m, 0).getDate();          // 기준 달의 총 일수
+  const sunIso = wAddDays(mon, 6);                  // 이 주의 일요일
+  // 이 주 끝까지 기준 달이 며칠 경과했나 — 주가 다음 달로 넘어가면 기준 달은 다 지난 것으로 본다
+  const elapsed = sunIso.slice(0, 7) === mon.slice(0, 7) ? Number(sunIso.slice(8, 10)) : dim;
+  const pace = Math.min(1, elapsed / dim);
   if (ratio >= pace * 0.9) return ['🟢', '페이스 이상'];
   if (ratio >= pace * 0.45) return ['🟡', '주의 — 페이스보다 느려요'];
   return ['🔴', '위험 — 레버를 당겨야 해요'];
