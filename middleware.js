@@ -22,10 +22,7 @@ export const config = {
 };
 
 export default async function middleware(req) {
-  const { configured, ok } = await verifyCfAccess(req);
-  if (!configured || ok) return; // 통과 (게이트 미설정 포함)
-
-  // CF를 거치지 않은 접근 → 정식 주소로 안내
+  // 1) 정식 주소가 아닌 호스트(*.vercel.app 등)는 무조건 정식 주소로 — CF 설정 여부와 무관
   const canonical = process.env.PUBLIC_HOST;
   const url = new URL(req.url);
   if (canonical && url.hostname !== canonical) {
@@ -33,7 +30,11 @@ export default async function middleware(req) {
     url.protocol = 'https:';
     return Response.redirect(url.toString(), 308);
   }
-  return new Response('사내 로그인이 필요해요 — 정식 주소(constanthub.kr 서브도메인)로 접속해주세요.', {
+
+  // 2) 정식 주소로 온 요청은 CF Access 서명(JWT) 검증 — 프록시 우회(직접 접속) 차단
+  const { configured, ok } = await verifyCfAccess(req);
+  if (!configured || ok) return; // 통과 (게이트 미설정 포함)
+  return new Response('사내 로그인이 필요해요 — https://' + (canonical || 'refilled-design.constanthub.kr') + ' 로 접속해주세요.', {
     status: 403,
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
