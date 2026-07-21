@@ -6,8 +6,8 @@ const taskRow = t => `
   <div class="tk-row">
     <div class="tk-dot ${t.status}"></div>
     <div class="tk-main">
-      <div class="tk-title">${esc(t.title)}</div>
-      <div class="tk-meta">
+      <div class="tk-title" style="font-size:13.5px">${esc(t.title)}</div>
+      <div class="tk-meta" style="font-size:11.5px">
         ${t.due ? `<b class="tk-dd ${t.due < todayISO() ? 'over' : (dday(t.due).match(/D-[0-3]$/) ? 'warn' : '')}">${dday(t.due)}</b><span class="mono" style="font-size:10px">${t.due.slice(5).replace('-', '/')}</span>` : ''}
         <span>${esc(store.assigneeNames(t))}</span>
         ${t.kind === 'request' && t.requester ? `<span class="muted">요청 ${esc(t.requester)}</span>` : ''}
@@ -55,23 +55,30 @@ export function renderDashboard(main) {
   };
   const wkndBg = `background-image:repeating-linear-gradient(90deg,rgba(120,120,120,.08) 0 ${(2 * dayPct).toFixed(3)}%,transparent ${(2 * dayPct).toFixed(3)}% ${(7 * dayPct).toFixed(3)}%);background-position:${(satOff * dayPct).toFixed(3)}% 0`;
 
-  const ganttRows = [...db.projects]
-    .sort((a, b) => ((a.end || '9999') < (b.end || '9999') ? -1 : 1))
-    .map(p => {
-    const cnt = open.filter(t => t.project === p.id).length;
-    const l = pct(p.start), r = pct(p.end);
-    const w = Math.max(2, r - l);
-    const rangeLb = `${(p.start || '').slice(5).replace('-', '/')} ~ ${(p.end || '').slice(5).replace('-', '/')}`;
-    const remain = p.end ? Math.round((new Date(p.end + 'T00:00:00') - new Date(today + 'T00:00:00')) / 864e5) : null;
-    const ddCls = remain === null ? '' : remain < 0 ? 'over' : remain <= 7 ? 'warn' : '';
-    return `<div class="g-row g-link" onclick="location.hash='#/tasks/projects'" title="${rangeLb} · 클릭하면 타임라인 편집으로 이동">
-      <div class="g-name">${esc(p.name)}<span>${p.end ? `<b class="tl-dd ${ddCls}">${dday(p.end)}</b> · ` : ''}${rangeLb} · ${esc(store.memberName(p.owner))} · ${cnt}건</span></div>
+  // 프로젝트별 마일스톤(하위 업무의 milestones) 기준으로 바·다음 일정 계산
+  const projMs = pid => db.tasks.filter(t => t.kind === 'project' && t.project === pid)
+    .flatMap(t => (t.milestones || []).map(m => m.date)).filter(Boolean).sort();
+  const ganttRows = db.projects.filter(p => !p.archived)
+    .map(p => ({ p, ms: projMs(p.id) }))
+    .sort((a, b) => {
+      const an = a.ms.find(d => d >= today) || a.ms.slice(-1)[0] || '9999';
+      const bn = b.ms.find(d => d >= today) || b.ms.slice(-1)[0] || '9999';
+      return an < bn ? -1 : 1;
+    })
+    .map(({ p, ms }) => {
+    const cnt = db.tasks.filter(t => t.kind === 'project' && t.project === p.id).length;
+    const next = ms.find(d => d >= today);
+    const lo = ms[0], hi = ms[ms.length - 1];
+    const l = lo ? pct(lo) : 0, r = hi ? pct(hi) : 0, w = Math.max(2, r - l);
+    const ddCls = next ? (next < today ? 'over' : (Math.round((new Date(next + 'T00:00:00') - new Date(today + 'T00:00:00')) / 864e5) <= 7 ? 'warn' : '')) : '';
+    return `<div class="g-row g-link" onclick="location.hash='#/tasks/projects'" title="클릭하면 프로젝트 타임라인으로 이동">
+      <div class="g-name">${esc(p.name)}<span>${next ? `<b class="tl-dd ${ddCls}">다음 ${dday(next)}</b> · ` : ''}${esc(store.memberName(p.owner))} · 하위 ${cnt}건</span></div>
       <div class="g-track" style="${wkndBg}">
-        <div class="g-bar" style="left:${l}%;width:${w}%;background:${gBarBg(p.color || 'var(--accent)', w, dayPct)}">${w >= 26 ? `<span class="g-bar-lb">${rangeLb}</span>` : ''}</div>
+        ${ms.length ? `<div class="g-bar" style="left:${l}%;width:${w}%;background:${gBarBg(p.color || 'var(--accent)', w, dayPct)}"></div>` : '<span style="position:absolute;left:8px;top:5px;font-size:10px;color:#9AA1AC">일정 미정</span>'}
         <div class="g-today" style="left:${pct(today)}%"></div>
       </div>
     </div>`;
-  }).join('') || '<div class="empty">프로젝트가 없어요. 업무 보드에서 추가해주세요.</div>';
+  }).join('') || '<div class="empty">진행 중인 프로젝트가 없어요. 업무 보드 → 프로젝트 타임라인에서 추가해주세요.</div>';
 
   const assignCols = db.members.map(m => {
     const mine = open.filter(t => (t.assignees || []).includes(m.id))
@@ -105,11 +112,11 @@ export function renderDashboard(main) {
     <div class="card"><div class="card-h"><h3>예정된 일정</h3><span class="sub">향후 7일</span></div>
       <div class="card-b">${Object.entries(upcoming).map(([d, list]) => `
         <div class="sched-day"><div class="sd-label">${fmtDate(d)} · ${dday(d)}</div>
-        ${list.map(t => `<div class="tk-title" style="font-size:12.5px;padding:2px 0">· ${esc(t.title)} <span class="muted" style="font-size:11px">${esc(store.assigneeNames(t))}</span></div>`).join('')}</div>`).join('')
+        ${list.map(t => `<div class="tk-title" style="font-size:13.5px;padding:3px 0">· ${esc(t.title)} <span class="muted" style="font-size:12px">${esc(store.assigneeNames(t))}</span></div>`).join('')}</div>`).join('')
         || '<div class="empty">7일 내 예정 일정이 없어요</div>'}</div></div>
   </div>
 
-  <div class="card" style="margin-bottom:20px"><div class="card-h"><h3>프로젝트 타임라인</h3><span class="sub">지난 1주 ~ 앞으로 4주 · 마감 임박순</span></div>
+  <div class="card" style="margin-bottom:20px"><div class="card-h"><h3>프로젝트 타임라인</h3><span class="sub">마일스톤 기준 · 다음 일정 임박순</span></div>
     <div class="card-b gantt">
       <div class="g-scale"><div></div><div class="g-scale-track">${weekMarks}</div></div>
       ${ganttRows}

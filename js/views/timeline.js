@@ -308,13 +308,96 @@ function projForm(p) {
     <div class="field"><label>담당자 (오너)</label><select id="pj-owner"><option value="">미지정</option>
       ${db.members.map(m => `<option value="${m.id}" ${p.owner === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>`;
 }
+/* 마커 이름 → id (없으면 생성). 템플릿의 대략 일정 산출에 사용 */
+function ensureMarkerByName(name) {
+  const arr = ensureMarkers(); let m = arr.find(x => x.name === name);
+  if (!m) { m = { id: uid(), name, color: MARKER_COLORS[arr.length % MARKER_COLORS.length] }; arr.push(m); }
+  return m.id;
+}
+/* 프로젝트 성격별 템플릿 (하위 업무 + 항목별 마일스톤 D+n) — 편집/삭제 가능한 초안 */
+const TEMPLATES = {
+  detail: { label: '상세페이지', subs: [{ name: '상세페이지', ms: [['기획전달', 0], ['1차시안', 8], ['2차시안', 18], ['최종시안', 28]] }] },
+  pkg: { label: '패키지 (용기·단상자)', subs: [
+    { name: '용기', ms: [['기획전달', 0], ['1차시안', 12], ['2차시안', 26], ['최종시안', 40], ['발주', 48]] },
+    { name: '단상자', ms: [['기획전달', 0], ['1차시안', 14], ['2차시안', 28], ['최종시안', 42], ['발주', 50]] },
+  ] },
+  content: { label: '콘텐츠 (누끼컷·썸네일)', subs: [
+    { name: '누끼컷', ms: [['기획전달', 0], ['최종시안', 6]] },
+    { name: '썸네일', ms: [['기획전달', 2], ['1차시안', 8], ['최종시안', 14]] },
+  ] },
+  banner: { label: '배너·프로모션', subs: [{ name: '배너', ms: [['기획전달', 0], ['1차시안', 4], ['2차시안', 8], ['최종시안', 12]] }] },
+  gwp: { label: '기획세트·GWP', subs: [
+    { name: '용기', ms: [['기획전달', 0], ['1차시안', 8], ['최종시안', 20], ['발주', 30]] },
+    { name: '상세페이지', ms: [['기획전달', 4], ['1차시안', 14], ['최종시안', 26]] },
+  ] },
+  blank: { label: '빈 프로젝트 (직접 구성)', subs: [] },
+};
+
 function addProject(main) {
-  openModal(`<h2>프로젝트 추가</h2>${projForm({})}
-    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-close>취소</button><button class="btn primary" id="pj-save">생성</button></div>`, body => {
-    body.querySelector('#pj-save').onclick = () => {
-      const name = body.querySelector('#pj-name').value.trim(); if (!name) return toast('프로젝트 이름을 입력해주세요', true);
-      const p = { id: uid(), name, color: PALETTE[store.db.projects.length % PALETTE.length], owner: body.querySelector('#pj-owner').value || null };
-      store.db.projects.push(p); expanded.add(p.id); store.save(); closeModal(); renderTimeline(main); toast(`"${name}" 프로젝트를 만들었어요`);
+  const db = store.db; ensureMarkers();
+  const today = todayISO();
+  let subs = []; // [{name, owner, ms:[{markerId, off}]}]
+  const loadTpl = key => { subs = (TEMPLATES[key]?.subs || []).map(s => ({ name: s.name, owner: '', ms: s.ms.map(([mk, off]) => ({ markerId: ensureMarkerByName(mk), off })) })); };
+  loadTpl('detail');
+  const markers = () => store.db.config.timelineMarkers || [];
+  const mkName = id => (markers().find(m => m.id === id) || {}).name || '?';
+
+  openModal(`
+    <h2>프로젝트 추가</h2>
+    <div class="field"><label>프로젝트 이름</label><input id="pj-name" placeholder="예: [리브랜딩] 부스터 프로+리필+미니"></div>
+    <div class="frow">
+      <div class="field"><label>담당자 (오너)</label><select id="pj-owner"><option value="">미지정</option>
+        ${db.members.map(m => `<option value="${m.id}" ${m.name === store.settings.userName ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>
+      <div class="field"><label>기준 시작일 <span class="muted" style="font-weight:400">(D+n 계산 기준)</span></label><input type="date" id="pj-base" value="${today}"></div>
+      <div class="field"><label>템플릿</label><select id="pj-tpl">${Object.entries(TEMPLATES).map(([k, t]) => `<option value="${k}" ${k === 'detail' ? 'selected' : ''}>${t.label}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label>하위 업무 · 대략 일정 <span class="muted" style="font-weight:400">(항목별 마일스톤을 D+n으로 미리 배치 · 나중에 매트릭스에서 날짜 조정)</span></label>
+      <div id="pj-subs"></div>
+      <button class="btn sm" id="pj-addsub" style="margin-top:4px">+ 하위 업무</button></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-close>취소</button><button class="btn primary" id="pj-save">생성</button></div>
+  `, body => {
+    const q = s => body.querySelector(s);
+    const drawSubs = () => {
+      q('#pj-subs').innerHTML = subs.map((s, i) => `
+        <div class="pj-sub" data-si="${i}" style="border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:6px">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <input class="ps-name" value="${esc(s.name)}" placeholder="하위 업무명" style="flex:1">
+            <select class="ps-owner"><option value="">담당 미지정</option>${db.members.map(m => `<option value="${m.id}" ${s.owner === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>
+            <button class="btn sm danger ps-del">✕</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+            ${s.ms.map((m, mi) => { const c = (markers().find(x => x.id === m.markerId) || {}).color || '#9AA1AC'; return `<span style="background:${c}22;color:${c};border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700">${esc(mkName(m.markerId))} D+${m.off} <button class="ps-msdel" data-mi="${mi}" style="background:none;border:none;color:inherit;cursor:pointer;padding:0">✕</button></span>`; }).join('')}
+            <select class="ps-newmk" style="font-size:11px">${markers().map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>
+            <span style="font-size:11px">D+</span><input class="ps-newoff" type="number" min="0" value="0" style="width:52px">
+            <button class="btn sm ps-msadd">+ 마일스톤</button>
+          </div>
+        </div>`).join('') || '<div class="empty" style="padding:8px 2px">하위 업무 없이 시작해요. "+ 하위 업무"로 추가하세요.</div>';
+      q('#pj-subs').querySelectorAll('[data-si]').forEach(row => {
+        const i = +row.dataset.si;
+        row.querySelector('.ps-name').onchange = e => subs[i].name = e.target.value;
+        row.querySelector('.ps-owner').onchange = e => subs[i].owner = e.target.value;
+        row.querySelector('.ps-del').onclick = () => { subs.splice(i, 1); drawSubs(); };
+        row.querySelectorAll('.ps-msdel').forEach(b => b.onclick = () => { subs[i].ms.splice(+b.dataset.mi, 1); drawSubs(); });
+        row.querySelector('.ps-msadd').onclick = () => { subs[i].ms.push({ markerId: row.querySelector('.ps-newmk').value, off: Math.max(0, +row.querySelector('.ps-newoff').value || 0) }); subs[i].ms.sort((a, b) => a.off - b.off); drawSubs(); };
+      });
+    };
+    q('#pj-tpl').onchange = e => { loadTpl(e.target.value); drawSubs(); };
+    q('#pj-addsub').onclick = () => { subs.push({ name: '새 업무', owner: '', ms: [] }); drawSubs(); };
+    drawSubs();
+
+    q('#pj-save').onclick = () => {
+      const name = q('#pj-name').value.trim(); if (!name) return toast('프로젝트 이름을 입력해주세요', true);
+      const base = q('#pj-base').value || today, owner = q('#pj-owner').value || null;
+      const p = { id: uid(), name, color: PALETTE[db.projects.length % PALETTE.length], owner };
+      db.projects.push(p);
+      const use = subs.filter(s => s.name.trim());
+      use.forEach(s => db.tasks.push({
+        id: uid(), kind: 'project', title: s.name.trim(), project: p.id, assignees: s.owner ? [s.owner] : [], tlStatus: 'wait',
+        milestones: s.ms.map(m => ({ date: addDays(base, m.off), typeId: m.markerId })).sort((a, b) => (a.date < b.date ? -1 : 1)),
+        priority: '중간', requester: '', requestedAt: today, due: '', link: '', files: [], notes: '', createdAt: new Date().toISOString(),
+      }));
+      expanded.add(p.id); store.save(); closeModal(); renderTimeline(main);
+      toast(`"${name}" 생성 — 하위 업무 ${use.length}건 배치`);
     };
   });
 }
