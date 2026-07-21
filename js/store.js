@@ -1,5 +1,6 @@
 import { mentionizeNames } from './slackmap.js';
 import { supabase, supaState, initSupabase } from './supabase.js';
+import { fetchDirectory } from './directory.js';
 /* store.js — 단일 원천 데이터 스토어 (Supabase 행 단위 저장, 사내 표준)
    localStorage는 즉시 표시용 캐시 — 원본은 Supabase 도메인 테이블.
    저장은 변경된 행만 upsert/delete 해요 (통짜 JSON 저장 금지 — 동시 수정 유실 방지). */
@@ -156,11 +157,58 @@ class Store {
       this.rebuildSnap();
       localStorage.setItem(LS_DB, JSON.stringify(this.db));
       this.status = 'synced'; this.emit();
+      this.syncDirectory(); // 사내 디렉토리에서 내 이름·팀원 목록 자동 반영 (비동기, 실패해도 무해)
       return true;
     } catch (e) {
       console.error(e); this.lastError = String(e.message || e);
       this.status = 'error'; this.emit(); return false;
     }
+  }
+
+  /* ── 사내 디렉토리 연동: 내 이름 + 디자인팀 구성원 자동 반영 ──
+     기존 멤버는 이름으로 매칭해 id를 보존(과거 업무의 담당자 참조 유지),
+     새 구성원은 표준대로 email을 id로 추가해요. 퇴사자는 자동 삭제하지 않아요
+     (과거 업무 표시용) — 필요 시 디렉토리에 없는 멤버만 수동 정리. */
+  async syncDirectory() {
+    if (this._dirSynced) return;
+    try {
+      const { me, members } = await fetchDirectory();
+      this._directory = members; // 슬랙 멘션용 전 구성원 캐시
+      if (me?.name && !this.settings.userName) {
+        this.settings.userName = me.name; this.saveSettings();
+      }
+      const design = members.filter(m => (m.teamName || '').includes('디자인'));
+      if (design.length) { // 필터 결과가 비면 건드리지 않음 (안전)
+        let changed = false;
+        for (const d of design) {
+          const ex = this.db.members.find(m => m.email === d.email || m.name === d.name);
+          const role = d.position || d.teamName || '';
+          if (ex) {
+            if (ex.email !== d.email || (role && ex.role !== role) || ex.slackUserId !== d.slackUserId) {
+              ex.email = d.email; if (role) ex.role = role; ex.slackUserId = d.slackUserId;
+              changed = true;
+            }
+          } else {
+            this.db.members.push({ id: d.email, name: d.name, role, email: d.email, slackUserId: d.slackUserId });
+            changed = true;
+          }
+        }
+        if (changed) this.save();
+      }
+      this._dirSynced = true;
+      this.emit();
+    } catch { /* 디렉토리 미접근(로컬 정적 서버 등) → 기존 목록 그대로 사용 */ }
+  }
+
+  /* 텍스트 속 이름 → 슬랙 멘션. 디렉토리(전 구성원) 우선, 정적 맵(slackmap.js)은 폴백 */
+  mentionize(text) {
+    if (!text) return text;
+    let out = text;
+    const dyn = (this._directory || []).filter(m => m.name && m.slackUserId);
+    for (const m of [...dyn].sort((a, b) => b.name.length - a.name.length)) {
+      if (out.includes(m.name)) out = out.split(m.name).join(`<@${m.slackUserId}>`);
+    }
+    return mentionizeNames(out);
   }
 
   /* ── 쓰기: 대기 중인 변경만 행 단위 upsert/delete ── */
@@ -359,7 +407,7 @@ class Store {
       { type: 'section', text: { type: 'mrkdwn', text: ':inbox_tray: 새 요청 업무가 등록됐어요 <!subteam^S06BYJ0KS5T|@디자인팀-ct>' } },
       { type: 'header', text: { type: 'plain_text', text: title.slice(0, 148), emoji: true } },
       { type: 'section', fields: [
-        { type: 'mrkdwn', text: `*기획자·요청자:* ${mentionizeNames(t.requester) || '미기재'}` },
+        { type: 'mrkdwn', text: `*기획자·요청자:* ${this.mentionize(t.requester) || '미기재'}` },
         { type: 'mrkdwn', text: `*우선순위:* ${t.priority || '중간'}` },
         { type: 'mrkdwn', text: `*요청일:* ${t.requestedAt || '-'}` },
         { type: 'mrkdwn', text: `*마감일:* ${t.due || '미정'}` },

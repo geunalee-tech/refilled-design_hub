@@ -25,13 +25,15 @@
 - 데이터 저장: `db.json` 통짜 커밋 → **Supabase 행 단위** (`js/store.js`가 변경 행만 upsert/delete). 이관 스크립트: `tools/migrate-supabase.mjs`
 - 인증: 자체 구글 OAuth → **Cloudflare Access + 사내 인증 브릿지** (`js/supabase.js`의 `ensureSession`)
 - 노션 미러링·펄스 크론(`api/notion-sync.js`, `api/pulse-sync.js`)도 Supabase 행 단위로 전환
+- 구성원 정보: 사내 디렉토리 API 자동 동기화 (`js/directory.js` → `store.syncDirectory()`).
+  디자인팀 필터는 `teamName`에 '디자인' 포함 기준. 슬랙 멘션도 디렉토리 `slackUserId` 우선,
+  `js/slackmap.js` 정적 맵은 폴백 (안정 확인 후 제거 가능)
 
 **남은 차이 (새 기능 작성 시 표준을 따를 것):**
 
 | 항목 | 현재 | 표준 |
 |---|---|---|
-| 파일 저장 | `files/` 폴더에 Git 커밋 (`/api/file`) | 사내 파일 API (`data.constanthub.kr/api/files/upload`) → URL만 저장. constanthub.kr 서브도메인 연결 후 전환 |
-| 구성원 정보 | `js/slackmap.js`에 이름→슬랙 ID 하드코딩 + `members` 테이블 | 사내 디렉토리 API (`/api/directory/*`) |
+| 파일 저장 | `files/` 폴더에 Git 커밋 (`/api/file`) | 사내 파일 API (`data.constanthub.kr/api/files/upload`) → URL만 저장. constanthub.kr 서브도메인 연결 완료 — 전환 가능 상태 |
 
 **정리 예정 (안정화 후):**
 - `api/db.js`(구 GitHub 동기화)와 `api/db.js`·`api/file.js`의 구 쿠키(hub_s) 폴백 — CF Access·Supabase 안정 확인 후 제거

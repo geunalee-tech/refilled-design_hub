@@ -1,5 +1,5 @@
 /* settings.js — 설정: 팀 동기화 · API 키 · 팀원 관리 · 백업 */
-import { store, uid } from '../store.js';
+import { store } from '../store.js';
 import { esc, toast, $ } from '../ui.js';
 
 export function renderSettings(main) {
@@ -10,17 +10,14 @@ export function renderSettings(main) {
 
   <div class="grid2">
     <div class="card"><div class="card-h"><h3>내 정보 · 팀원</h3></div><div class="card-b">
-      <div class="field"><label>내 이름 (문서 작성자·대시보드 인사에 표시)</label><input id="s-name" value="${esc(s.userName)}" placeholder="예: 근아"></div>
-      <label style="font-size:11.5px;font-weight:600;color:var(--muted)">팀원 목록</label>
+      <div class="field"><label>내 이름 (문서 작성자·대시보드 인사에 표시 — 사내 디렉토리에서 자동)</label><input id="s-name" value="${esc(s.userName)}" placeholder="자동으로 채워져요"></div>
+      <label style="font-size:11.5px;font-weight:600;color:var(--muted)">팀원 목록 <span style="font-weight:400">(사내 디렉토리 자동 동기화)</span></label>
       <div id="s-members" style="margin:8px 0">
         ${db.members.map(m => `<div class="goal-row" data-mid="${m.id}">
-          <span class="gt">${esc(m.name)} <span class="muted" style="font-size:11px">${esc(m.role || '')}</span></span>
-          <button class="btn sm danger" data-mdel="${m.id}">✕</button></div>`).join('')}
+          <span class="gt">${esc(m.name)} <span class="muted" style="font-size:11px">${esc(m.role || '')}</span></span></div>`).join('')
+          || '<p class="hint">팀 동기화가 연결되면 디자인팀 구성원이 자동으로 채워져요</p>'}
       </div>
-      <div style="display:flex;gap:6px">
-        <input id="s-new-mname" placeholder="이름" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 10px">
-        <input id="s-new-mrole" placeholder="역할" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 10px">
-        <button class="btn sm" id="s-madd">추가</button></div>
+      <p class="hint">입사·퇴사는 사내 디렉토리(data.constanthub.kr) 기준으로 반영돼요. 목록이 비어 있으면 좌측 하단 배지로 연결 상태를 확인해주세요.</p>
     </div></div>
 
     <div class="card"><div class="card-h"><h3>AI 기능</h3></div><div class="card-b">
@@ -52,17 +49,6 @@ export function renderSettings(main) {
   </div>`;
 
   $('#s-name').onchange = e => { s.userName = e.target.value.trim(); store.saveSettings(); toast('저장했어요'); };
-
-  $('#s-madd').onclick = () => {
-    const name = $('#s-new-mname').value.trim();
-    if (!name) return;
-    db.members.push({ id: uid(), name, role: $('#s-new-mrole').value.trim() });
-    store.save(); renderSettings(main);
-  };
-  main.querySelectorAll('[data-mdel]').forEach(b => b.onclick = () => {
-    db.members = db.members.filter(m => m.id !== b.dataset.mdel);
-    store.save(); renderSettings(main);
-  });
 
   $('#s-akey-save').onclick = () => {
     s.geminiKey = $('#s-gkey').value.trim();
