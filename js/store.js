@@ -292,8 +292,13 @@ class Store {
         keep.date = k; // 날짜를 해당 주 월요일로 정규화
         arr.forEach(r => { if (r !== keep) drop.add(r.id); });
       });
-      const cfgs = this.db.rituals.filter(r => r.type === 'goals-config');
-      if (cfgs.length > 1) { const keep = pick(cfgs); cfgs.forEach(r => { if (r !== keep) drop.add(r.id); }); }
+      // 가중목 config는 분기별 1개로 정리 (분기 없는 구 config는 _legacy 그룹) — 분기 도입 후 분기별 유지
+      const cfgGroups = {};
+      this.db.rituals.filter(r => r.type === 'goals-config')
+        .forEach(r => { const k = r.quarter || '_legacy'; (cfgGroups[k] = cfgGroups[k] || []).push(r); });
+      Object.values(cfgGroups).forEach(arr => {
+        if (arr.length > 1) { const keep = pick(arr); arr.forEach(r => { if (r !== keep) drop.add(r.id); }); }
+      });
       if (drop.size) this.db.rituals = this.db.rituals.filter(r => !drop.has(r.id));
     }
     // 노션 미러링 업무의 id를 전체 UUID 기반으로 통일 + 중복 id 복구 (구버전 12자리 id 충돌 해결)

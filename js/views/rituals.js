@@ -289,26 +289,49 @@ const wigLabel = mon => {
 };
 let wigWeek = null; // 현재 보고 있는 주 (월요일 ISO)
 
-function wigConfig() {
-  let c = store.db.rituals.find(r => r.type === 'goals-config');
-  if (!c) { // 최초 1회: 노션 26Y 가중목(3분기)에서 가져온 기본값
-    c = {
-      id: uid(), type: 'goals-config', createdAt: new Date().toISOString(),
-      goal: '리필드의 브랜드 아이덴티티를 확고히 하여, 브랜드 인지도 향상 및 매출 증대에 기여한다.',
-      lag: [
-        { id: uid(), label: '자사몰 비주얼 개편 후, 프로모션 실험을 통한 CVR +5%' },
-        { id: uid(), label: '국내 채널 리브랜딩 적용 완료율 100% (올영·무신사·쿠팡 등)' },
-        { id: uid(), label: '아마존 채널 비주얼 개편을 통한 CVR 평균 8% 이상' },
-      ],
-      lead: [
-        { id: uid(), label: '자사몰 프로모션 비주얼 실험', target: 2 },
-        { id: uid(), label: '국내 채널 에셋 적용 (썸네일·상페·배너)', target: 4 },
-        { id: uid(), label: '아마존 채널 비주얼 실험', target: 4 },
-        { id: uid(), label: '디자인 트렌드 발굴 및 시도', target: 4 },
-      ],
-    };
-    store.db.rituals.push(c); store.save();
-  }
+/* ── 분기별 가중목 config ──
+   각 주차는 '월요일이 속한 분기'(quarterOf)의 config를 참조 → 한 분기를 수정해도 다른 분기 주차는 그대로.
+   새 분기는 직전 분기 설정을 복제해 시작(lead id 유지 → 누적 연속). 구 단일 config는 현재 분기로 1회 이관. */
+function quarterOf(monISO) {
+  const [y, m] = monISO.split('-').map(Number);
+  return `${y}-Q${Math.floor((m - 1) / 3) + 1}`;
+}
+function quarterLabel(q) { const [y, n] = q.split('-Q'); return `${y}년 ${n}분기`; }
+function nextQuarter(q) { let [y, n] = q.split('-Q').map(Number); if (++n > 4) { n = 1; y++; } return `${y}-Q${n}`; }
+const allConfigs = () => store.db.rituals.filter(r => r.type === 'goals-config');
+const DEFAULT_CFG = () => ({
+  goal: '리필드의 브랜드 아이덴티티를 확고히 하여, 브랜드 인지도 향상 및 매출 증대에 기여한다.',
+  lag: [
+    { id: uid(), label: '자사몰 비주얼 개편 후, 프로모션 실험을 통한 CVR +5%' },
+    { id: uid(), label: '국내 채널 리브랜딩 적용 완료율 100% (올영·무신사·쿠팡 등)' },
+    { id: uid(), label: '아마존 채널 비주얼 개편을 통한 CVR 평균 8% 이상' },
+  ],
+  lead: [
+    { id: uid(), label: '자사몰 프로모션 비주얼 실험', target: 2 },
+    { id: uid(), label: '국내 채널 에셋 적용 (썸네일·상페·배너)', target: 4 },
+    { id: uid(), label: '아마존 채널 비주얼 실험', target: 4 },
+    { id: uid(), label: '디자인 트렌드 발굴 및 시도', target: 4 },
+  ],
+});
+function migrateLegacyConfig() {
+  const legacy = allConfigs().find(r => !r.quarter);
+  if (legacy) { legacy.quarter = quarterOf(mondayOf(todayISO())); store.save(); }
+}
+function wigConfig(quarter) {
+  migrateLegacyConfig();
+  let c = allConfigs().find(r => r.quarter === quarter);
+  if (c) return c;
+  // 없으면 직전 분기(없으면 가장 가까운 분기, 그래도 없으면 기본값) 복제
+  const tagged = allConfigs().filter(r => r.quarter);
+  const earlier = tagged.filter(r => r.quarter < quarter).sort((a, b) => (a.quarter < b.quarter ? 1 : -1))[0];
+  const src = earlier || tagged.sort((a, b) => (a.quarter < b.quarter ? 1 : -1))[0] || DEFAULT_CFG();
+  c = {
+    id: uid(), type: 'goals-config', quarter, createdAt: new Date().toISOString(),
+    goal: src.goal,
+    lead: JSON.parse(JSON.stringify(src.lead || [])),
+    lag: JSON.parse(JSON.stringify(src.lag || [])),
+  };
+  store.db.rituals.push(c); store.save();
   return c;
 }
 
@@ -348,9 +371,10 @@ function wigSignal(ratio, mon) {
 
 function renderWig(main) {
   const db = store.db;
-  const cfg = wigConfig();
   if (!wigWeek) wigWeek = mondayOf(todayISO());
   const mon = wigWeek, sun = wAddDays(mon, 6);
+  const quarter = quarterOf(mon);
+  const cfg = wigConfig(quarter);
   const cur = wigDoc(mon, true);
   const prev = wigDoc(wAddDays(mon, -7));
   const isThisWeek = mon === mondayOf(todayISO());
@@ -431,7 +455,7 @@ function renderWig(main) {
   </div>
 
   <div class="wig-banner">
-    <div class="wig-goal">🚩 <b>${esc(cfg.goal)}</b></div>
+    <div class="wig-goal">🚩 <b>${esc(cfg.goal)}</b> <span class="tag blue" style="font-size:10px;margin-left:6px" title="이 분기 목표">${quarterLabel(quarter)}</span></div>
     <div class="wig-lags">${cfg.lag.map((g, i) => `<span>${i + 1}. ${esc(g.label)}</span>`).join('')}</div>
   </div>
 
@@ -457,7 +481,7 @@ function renderWig(main) {
   $('#w-prev').onclick = () => { wigWeek = wAddDays(mon, -7); renderWig(main); };
   $('#w-next').onclick = () => { wigWeek = wAddDays(mon, 7); renderWig(main); };
   $('#w-today') && ($('#w-today').onclick = () => { wigWeek = mondayOf(todayISO()); renderWig(main); });
-  $('#w-cfg').onclick = () => wigConfigModal(main);
+  $('#w-cfg').onclick = () => wigConfigModal(main, quarter);
   $('#w-copy').onclick = () => { copyText(wigMarkdown(cfg, cur, prev, mon)); toast('회의록을 마크다운으로 복사했어요 — 노션에 그대로 붙여넣을 수 있어요'); };
 
   /* ① 지난 주 체크 */
@@ -498,10 +522,12 @@ function renderWig(main) {
   });
 }
 
-/* ⚙️ 목표 설정: 가중목 · 선행/후행지표 편집 */
-function wigConfigModal(main) {
-  const cfg = wigConfig();
+/* ⚙️ 목표 설정: 분기별 가중목 · 선행/후행지표 편집 */
+function wigConfigModal(main, quarter) {
+  quarter = quarter || quarterOf(wigWeek || mondayOf(todayISO()));
+  const cfg = wigConfig(quarter);
   const w = JSON.parse(JSON.stringify({ goal: cfg.goal, lead: cfg.lead, lag: cfg.lag }));
+  const quarters = [...new Set([...allConfigs().map(r => r.quarter).filter(Boolean), quarter, nextQuarter(quarter)])].sort();
   const leadRows = () => w.lead.map((l, i) => `
     <div style="display:flex;gap:6px;margin-bottom:6px">
       <input data-le="${i}" value="${esc(l.label)}" style="flex:1" placeholder="선행지표">
@@ -513,6 +539,9 @@ function wigConfigModal(main) {
       <button class="btn sm danger" data-gd="${i}">✕</button></div>`).join('');
   openModal(`
     <h2>가중목 · 지표 설정</h2>
+    <div class="field"><label>분기</label>
+      <select id="c-quarter">${quarters.map(q => `<option value="${q}" ${q === quarter ? 'selected' : ''}>${quarterLabel(q)}${allConfigs().some(r => r.quarter === q) ? '' : ' (신규)'}</option>`).join('')}</select>
+      <p class="muted" style="font-size:11px;margin:4px 0 0">이 설정은 <b>${quarterLabel(quarter)}</b> 주차에만 적용돼요. 새 분기는 직전 분기 설정을 복제해 시작합니다. (분기를 바꾸면 저장 안 한 편집은 사라져요)</p></div>
     <div class="field"><label>가중목 (팀의 가장 중요한 목표)</label><textarea id="c-goal" rows="2" style="width:100%">${esc(w.goal)}</textarea></div>
     <div class="field"><label>선행지표 <span class="muted" style="font-weight:400">(우리가 매주 직접 움직일 수 있는 레버 · 월 목표 건수)</span></label>
       <div id="c-lead">${leadRows()}</div><button class="btn sm" id="c-addlead">+ 선행지표 추가</button></div>
@@ -522,6 +551,7 @@ function wigConfigModal(main) {
       <button class="btn" data-close>취소</button><button class="btn primary" id="c-save">저장</button></div>
   `, body => {
     const q = s => body.querySelector(s);
+    q('#c-quarter').onchange = e => { closeModal(); wigConfigModal(main, e.target.value); }; // 분기 전환(미저장 편집 폐기)
     const rebind = () => {
       q('#c-lead').innerHTML = leadRows(); q('#c-lag').innerHTML = lagRows();
       body.querySelectorAll('[data-le]').forEach(el => el.onchange = () => w.lead[+el.dataset.le].label = el.value);
@@ -537,7 +567,7 @@ function wigConfigModal(main) {
       cfg.goal = q('#c-goal').value.trim() || cfg.goal;
       cfg.lead = w.lead.filter(l => l.label.trim());
       cfg.lag = w.lag.filter(g => g.label.trim());
-      store.save(); closeModal(); renderWig(main); toast('가중목 설정을 저장했어요');
+      store.save(); closeModal(); renderWig(main); toast(`${quarterLabel(quarter)} 가중목 설정을 저장했어요`);
     };
   });
 }
