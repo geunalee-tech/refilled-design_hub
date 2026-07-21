@@ -24,7 +24,14 @@
 **전환 완료:**
 - 데이터 저장: `db.json` 통짜 커밋 → **Supabase 행 단위** (`js/store.js`가 변경 행만 upsert/delete). 이관 스크립트: `tools/migrate-supabase.mjs`
 - 인증: 자체 구글 OAuth → **Cloudflare Access + 사내 인증 브릿지** (`js/supabase.js`의 `ensureSession`)
-- 노션 미러링·펄스 크론(`api/notion-sync.js`, `api/pulse-sync.js`)도 Supabase 행 단위로 전환
+- 펄스 크론(`api/pulse-sync.js`, 위클리 리추얼 회의록 아카이빙)도 Supabase 행 단위로 전환
+- 노션 업무 수신(구 `api/notion-sync.js`)은 제거됨 — 요청 업무는 허브에서만 등록. 리추얼용 노션 조회(`pulse-sync`)는 별개로 유지.
+  - 현재 노션 업무를 허브로 1회 가져오려면 `tools/import-notion-tasks.mjs` (요청/시작 전/진행 중/컨펌요청만, 기획안 링크·기획 텍스트 반영, 멱등)
+- 슬랙 알림은 **봇 프록시 `/api/slack-notify`** (봇 토큰 `SLACK_BOT_TOKEN`/`SLACK_CHANNEL_ID` env, CF Access fail-closed 검증):
+  - 새 요청 업무 등록 → `store.notifyNewRequest()`가 `chat.postMessage`로 발송하고 반환 `ts`를 업무(`slackTs`/`slackChannel`)에 저장
+  - 컨펌요청 전환(요청 업무만) → `store.notifyConfirmUpdate()`가 원본 `ts` 있으면 그 스레드에 "컨펌 요청 상태 업데이트" 댓글 + 요청자·담당자 멘션(`_confirmMentions`, 댓글 `ts`는 `slackConfirmTs`), 원본이 없으면(임포트·구 업무) 새 메시지로 발송하고 그 `ts`를 앵커(`slackTs`)로 저장. 봇 실패 시 웹훅 폴백
+  - 업무 삭제 → `store.recallSlack()`가 `chat.delete`로 컨펌 댓글→원본 순 회수 (봇 발송분만; `action:'delete'`)
+  - 봇 미설정 시 설정 화면의 Incoming Webhook으로 폴백(새 메시지만, 스레드 댓글 불가). 웹훅은 '일정 협의 요청' 발송에도 사용
 - 구성원 정보: 사내 디렉토리 API 자동 동기화 (`js/directory.js` → `store.syncDirectory()`).
   디자인팀 필터는 `teamName`에 '디자인' 포함 기준. 슬랙 멘션도 디렉토리 `slackUserId` 우선,
   `js/slackmap.js` 정적 맵은 폴백 (안정 확인 후 제거 가능)

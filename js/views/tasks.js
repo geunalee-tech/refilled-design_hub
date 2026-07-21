@@ -18,6 +18,14 @@ function dueLoad(dueISO, exceptId) {
 }
 const NEXT = { req: 'doing', doing: 'confirm', confirm: 'done' };
 const NEXT_LABEL = { req: '진행 →', doing: '컨펌 요청 →', confirm: '완료 ✓' };
+// 슬랙 메시지 바로가기(💬) 버튼 — 우선 이 업무 하나에만 적용하는 트라이얼.
+// 이 업무엔 봇 slackTs가 없어 링크를 직접 고정(permalink)해 둠. 확대할 땐 이 게이트를 제거하고
+// t.slackTs 기반(store.slackPermalink)으로 전체 적용하면 됨.
+const SLACK_LINK_TRIAL_MATCH = '안심케어 배너 수정';
+const TRIAL_SLACK_PERMALINK = 'https://constantinc.slack.com/archives/C0664RF1LAC/p1784622034816269';
+const isSlackLinkTrial = t => (t.title || '').includes(SLACK_LINK_TRIAL_MATCH);
+// 이 업무에서 💬로 열 링크: 고정 permalink 우선(현재 트라이얼), 없으면 저장된 slackTs로 서버 조회
+const trialSlackLink = t => (isSlackLinkTrial(t) ? TRIAL_SLACK_PERMALINK : '');
 const PALETTE = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A'];
 
 let filter = { kind: '', assignee: '', project: '' };
@@ -83,9 +91,24 @@ export function renderTasks(main, sub = '') {
     el.onclick = e => {
       if (e.target.matches('[data-move]')) {
         const t = store.db.tasks.find(x => x.id === el.dataset.task);
+        const prev = t.status;
         t.status = e.target.dataset.move;
         if (t.status === 'done') t.doneAt = todayISO(); else delete t.doneAt;
         store.save(); renderTasks(main, sub);
+        if (t.status === 'confirm' && prev !== 'confirm' && t.kind === 'request') {
+          store.notifyConfirmUpdate(t).then(ok =>
+            toast(ok ? '컨펌 요청 알림을 슬랙에 보냈어요' : '슬랙 알림을 못 보냈어요 — 봇 토큰/웹훅 설정을 확인해주세요', !ok));
+        }
+      } else if (e.target.matches('[data-slack]')) {
+        e.stopPropagation();
+        const t = store.db.tasks.find(x => x.id === el.dataset.task);
+        const pinned = trialSlackLink(t);
+        if (pinned) { window.open(pinned, '_blank', 'noopener'); return; } // 고정 링크는 바로 열기(오류 없음)
+        const w = window.open('', '_blank'); // 사용자 클릭 제스처로 먼저 열어 팝업 차단 회피
+        store.slackPermalink(t).then(url => {
+          if (url && w) w.location.href = url;
+          else { if (w) w.close(); toast('슬랙 메시지 링크를 가져오지 못했어요 — 봇 설정·채널 초대를 확인해주세요', true); }
+        });
       } else if (e.target.matches('a')) {
         /* 링크는 그대로 통과 */
       } else editTask(el.dataset.task);
@@ -111,6 +134,7 @@ function card(t) {
       ${t.notionId ? `<span class="tag gray" title="노션에서 자동 등록">N</span>` : ''}
       ${t.files?.length ? `<span class="muted" style="font-size:10px">📎${t.files.length}</span>` : ''}
       ${t.link ? `<a href="${esc(t.link)}" target="_blank" rel="noopener" title="작업 링크 열기" style="font-size:10px">🔗</a>` : ''}
+      ${(trialSlackLink(t) || (t.slackTs && isSlackLinkTrial(t))) ? `<button type="button" data-slack title="연결된 슬랙 메시지로 이동" style="font-size:10px;background:none;border:none;padding:0;cursor:pointer;line-height:1">💬</button>` : ''}
     </div>
     ${t.project ? `<div class="pj-line"><i style="background:${p?.color || '#999'}"></i>${esc(store.projectName(t.project))}${t.priority === '보류' ? '<span class="hold-tag">보류</span>' : ''}</div>`
       : (t.priority === '보류' ? '<div class="pj-line"><span class="hold-tag">보류</span></div>' : '')}
@@ -367,7 +391,7 @@ export function editTask(id, isRequest = false, preset = {}) {
       files.push({ name, url }); redraw();
     };
 
-    q('#t-save').onclick = () => {
+    q('#t-save').onclick = async () => {
       const v = s => q(s).value.trim();
       let projectId = v('#t-project');
       if (projectId === '__new') {
@@ -436,30 +460,40 @@ export function editTask(id, isRequest = false, preset = {}) {
         }
       }
       if (data.status === 'done') data.doneAt = (id && t.doneAt) || todayISO();
-      if (id) { if (data.status !== 'done') delete t.doneAt; Object.assign(t, data); }
+      let confirmNotify = null;
+      if (id) {
+        const prevStatus = t.status;
+        if (data.status !== 'done') delete t.doneAt;
+        Object.assign(t, data);
+        if (t.status === 'confirm' && prevStatus !== 'confirm' && t.kind === 'request') confirmNotify = t;
+      }
       else {
         const nt = { id: uid(), createdAt: new Date().toISOString(), ...data };
         db.tasks.push(nt);
         if (nt.kind === 'request') {
-          if (store.slackWebhook) {
-            store.notifyNewRequest(nt);
-            store.save(); closeModal(); toast('저장 완료 — 슬랙 채널로 알림을 보냈어요');
-            window.dispatchEvent(new Event('hashchange')); return;
-          } else {
-            store.save(); closeModal();
-            toast('저장은 됐지만 슬랙 웹훅이 없어 알림을 못 보냈어요 (설정 → 팀 알림에서 연결)', true);
-            window.dispatchEvent(new Event('hashchange')); return;
-          }
+          closeModal();
+          const ok = await store.notifyNewRequest(nt); // 봇 발송 시 nt.slackTs 저장됨
+          store.save();
+          toast(ok ? '저장 완료 — 슬랙 채널로 알림을 보냈어요'
+                   : '저장했어요 (슬랙 알림은 실패 — 봇 토큰/웹훅 설정을 확인해주세요)', !ok);
+          window.dispatchEvent(new Event('hashchange')); return;
         }
       }
       store.save(); closeModal(); toast('저장했어요');
+      if (confirmNotify) {
+        store.notifyConfirmUpdate(confirmNotify).then(ok =>
+          toast(ok ? '컨펌 요청 알림을 슬랙에 보냈어요' : '슬랙 알림을 못 보냈어요 — 봇 토큰/웹훅 설정을 확인해주세요', !ok));
+      }
       window.dispatchEvent(new Event('hashchange'));
     };
     const del = q('#t-del');
-    if (del) del.onclick = () => {
-      if (!confirm('이 업무를 삭제할까요?')) return;
+    if (del) del.onclick = async () => {
+      const hasSlack = !!t.slackTs;
+      if (!confirm('이 업무를 삭제할까요?' + (hasSlack ? '\n연결된 슬랙 알림도 함께 회수돼요.' : ''))) return;
+      if (hasSlack) await store.recallSlack(t);
       db.tasks = db.tasks.filter(x => x.id !== id);
-      store.save(); closeModal(); toast('삭제했어요');
+      store.save(); closeModal();
+      toast(hasSlack ? '삭제했어요 — 슬랙 알림도 회수했어요' : '삭제했어요');
       window.dispatchEvent(new Event('hashchange'));
     };
   });

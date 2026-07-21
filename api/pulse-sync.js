@@ -9,7 +9,7 @@
  *
  * 필요한 Vercel 환경변수:
  *  NOTION_TOKEN  — 노션 인테그레이션 시크릿 (회의 DB에 연결돼 있어야 함)
- *  SUPABASE_URL / SUPABASE_SERVICE_KEY / SYNC_SECRET — notion-sync.js와 동일
+ *  SUPABASE_URL / SUPABASE_SERVICE_KEY / SYNC_SECRET — 팀 Supabase + 웹훅 시크릿
  *  PULSE_DB      — (선택) 회의 데이터베이스 ID. 기본: 2cef27f09cd64a2497ab51aed5be4829
  */
 
@@ -17,7 +17,7 @@ const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VER = '2022-06-28';
 const DEFAULT_DB = '2cef27f09cd64a2497ab51aed5be4829'; // C-Tribe "회의" DB
 
-/* ── Supabase REST (행 단위 접근 — notion-sync.js와 동일 패턴) ── */
+/* ── Supabase REST (행 단위 접근 — 사내 표준 패턴) ── */
 async function sb(path, init = {}) {
   const key = process.env.SUPABASE_SERVICE_KEY;
   const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`, {

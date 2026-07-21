@@ -1,5 +1,5 @@
 import { mentionizeNames } from './slackmap.js';
-import { supabase, supaState, initSupabase } from './supabase.js';
+import { supabase, supaState, initSupabase, serverConfig } from './supabase.js';
 import { fetchDirectory } from './directory.js';
 import { uploadFile } from './files.js';
 /* store.js — 단일 원천 데이터 스토어 (Supabase 행 단위 저장, 사내 표준)
@@ -376,11 +376,16 @@ class Store {
   }
 
   /* ── Slack 알림 (Incoming Webhook) ── */
+  /* 서버 env(SLACK_WEBHOOK)에 값이 있으면 그게 우선 — 브라우저 저장분처럼 사라지지 않아요.
+     env가 없을 때만 팀 공유 config(Supabase)에 저장된 값을 사용 (폴백·하위호환). */
+  get slackWebhookFixed() { return !!serverConfig.slackWebhook; }
   get slackWebhook() {
+    if (serverConfig.slackWebhook) return serverConfig.slackWebhook;
     try { return this.db.config?.slackHookB64 ? atob(this.db.config.slackHookB64) : ''; }
     catch { return ''; }
   }
   set slackWebhook(url) {
+    if (this.slackWebhookFixed) return; // 서버 env로 고정된 경우 브라우저 저장 무시
     this.db.config.slackHookB64 = url ? btoa(url) : '';
     this.save();
   }
@@ -394,12 +399,11 @@ class Store {
     });
     return true;
   }
-  notifyNewRequest(t) {
-    const hook = this.slackWebhook;
-    if (!hook) return;
+  /* '새 요청 업무' 알림 Block Kit + 제목 (프로젝트 프리픽스 포함) */
+  _requestBlocks(t) {
     const appUrl = location.origin + location.pathname + '#/tasks/requests';
     const proj = this.projectName(t.project);
-    // 노션 알림처럼 제목에 [프로젝트] 프리픽스 (이미 [로 시작하면 그대로)
+    // 제목에 [프로젝트] 프리픽스 (이미 [로 시작하면 그대로)
     const title = (t.project && proj !== '기타' && !t.title.trim().startsWith('[') ? `[${proj}] ` : '') + t.title;
     const blocks = [
       { type: 'section', text: { type: 'mrkdwn', text: ':inbox_tray: 새 요청 업무가 등록됐어요 <!subteam^S06BYJ0KS5T|@디자인팀-ct>' } },
@@ -417,8 +421,104 @@ class Store {
         { type: 'button', text: { type: 'plain_text', text: '업무 보드에서 확인', emoji: true }, url: appUrl }
       ]}
     ];
+    return { title, blocks };
+  }
+
+  /* 새 요청 업무 알림. 봇(서버 /api/slack-notify) 우선 — 반환된 ts를 업무에 저장해
+     나중에 컨펌요청 시 그 스레드에 댓글을 달 수 있게 함. 봇 미설정 시 웹훅으로 폴백(스레드 댓글 불가). */
+  async notifyNewRequest(t) {
+    const { title, blocks } = this._requestBlocks(t);
     const fallback = `📥 새 요청 업무: ${title} (${t.requester || '요청'} · 마감 ${t.due || '미정'})`;
-    this.notifySlack(fallback, blocks).catch(() => {});
+    try {
+      const r = await fetch('/api/slack-notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: fallback, blocks }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) { if (j.ts) { t.slackTs = j.ts; t.slackChannel = j.channel; } return true; }
+      // 503(봇 미설정) 등 → 아래 웹훅 폴백
+    } catch { /* 네트워크 실패 → 웹훅 폴백 */ }
+    if (this.slackWebhook) return this.notifySlack(fallback, blocks);
+    return false;
+  }
+
+  /* 컨펌요청 전환 시 상태 업데이트 알림 + 요청자·담당자 멘션 (요청 업무만).
+     원 메시지 ts(봇 발송분)가 있으면 그 스레드에 댓글, 없으면(임포트·구 업무·봇 이후 등록분)
+     새 메시지로 발송하고 그 ts를 앵커로 저장 → 이후 회수도 가능. 봇 실패 시 웹훅 폴백. */
+  async notifyConfirmUpdate(t) {
+    if (!t || t.kind !== 'request') return false;
+    const proj = this.projectName(t.project);
+    const title = (t.project && proj !== '기타' && !t.title.trim().startsWith('[') ? `[${proj}] ` : '') + t.title;
+    const mentions = this._confirmMentions(t);
+    const threaded = !!t.slackTs;
+    let text = `:bell: *컨펌 요청 상태 업데이트*\n*${title}* 업무가 *컨펌요청* 단계로 넘어갔어요.`;
+    if (!threaded && t.link) text += `\n<${t.link}|📋 기획안 바로가기>`;
+    if (mentions) text += `\n${mentions} 확인 부탁드려요 🙏`;
+    const body = threaded ? { text, threadTs: t.slackTs, channel: t.slackChannel } : { text };
+    try {
+      const r = await fetch('/api/slack-notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) {
+        if (j.ts) {
+          if (threaded) t.slackConfirmTs = j.ts;                 // 스레드 댓글 ts
+          else { t.slackTs = j.ts; t.slackChannel = j.channel; } // 원본 없던 경우 이 메시지를 앵커로
+          this.save();
+        }
+        return true;
+      }
+    } catch { /* 봇 실패 → 웹훅 폴백 */ }
+    if (this.slackWebhook) return this.notifySlack(text);
+    return false;
+  }
+
+  /* 업무 카드 → 연결된 슬랙 메시지 바로가기. Slack 정식 permalink를 서버에서 받아와 캐시(t.slackPermalink).
+     링크를 임의 조합하지 않아 깨질 일이 없음. 봇 메시지(slackTs)가 없으면 빈 문자열. */
+  async slackPermalink(t) {
+    if (t?.slackPermalink) return t.slackPermalink;
+    if (!t?.slackTs || !t?.slackChannel) return '';
+    try {
+      const r = await fetch('/api/slack-notify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'permalink', ts: t.slackTs, channel: t.slackChannel }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok && j.permalink) { t.slackPermalink = j.permalink; this.save(); return j.permalink; }
+    } catch { /* 실패 → 빈 문자열 (버튼 클릭 시 안내) */ }
+    return '';
+  }
+
+  /* 업무 삭제 시 봇이 보낸 슬랙 메시지 회수 (컨펌 댓글 → 원본 순). 봇 발송분(slackTs 보유)만 가능. */
+  async recallSlack(t) {
+    if (!t?.slackTs) return false;
+    const del = async ts => {
+      if (!ts) return;
+      try {
+        await fetch('/api/slack-notify', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', ts, channel: t.slackChannel }),
+        });
+      } catch { /* 회수 실패해도 업무 삭제는 진행 */ }
+    };
+    await del(t.slackConfirmTs); // 스레드 댓글 먼저
+    await del(t.slackTs);        // 원본 메시지
+    return true;
+  }
+
+  /* 요청자(이름 문자열) + 담당자(assignees 멤버 id / 임포트 이름)를 슬랙 멘션 토큰으로 */
+  _confirmMentions(t) {
+    const set = new Set();
+    const push = tok => { if (tok) set.add(tok); };
+    if (t.requester) push(this.mentionize(t.requester));
+    (t.assignees || []).forEach(id => {
+      const m = this.member(id);
+      if (m?.slackUserId) push(`<@${m.slackUserId}>`);
+      else if (m?.name) push(this.mentionize(m.name));
+    });
+    (t._designerNames || []).forEach(n => push(this.mentionize(n)));
+    return [...set].join(' ');
   }
 }
 

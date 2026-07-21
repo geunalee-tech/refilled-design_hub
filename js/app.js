@@ -91,7 +91,14 @@ async function authBox() {
   authBox();
   syncBadge();
   route(); // localStorage 캐시로 즉시 표시
-  // Supabase 연결(브릿지 세션) 후 팀 데이터로 교체 — 실패하면 로컬 모드 유지
-  const ok = await store.pull();
+  // Supabase 연결(브릿지 세션) 후 팀 데이터로 교체.
+  // 재배포 직후 콜드스타트·세션 워밍업으로 첫 pull이 실패하면 오래된 캐시가 그대로 남으므로,
+  // 짧은 백오프로 몇 번 더 시도해 자동으로 최신본을 받아와요 (수동 '다시 불러오기' 불필요).
+  let ok = false;
+  for (let i = 0; i < 4; i++) {
+    ok = await store.pull();
+    if (ok) break;
+    if (i < 3) await new Promise(r => setTimeout(r, 700 * (i + 1)));
+  }
   if (ok) route();   // 팀 최신 데이터 반영
 })();

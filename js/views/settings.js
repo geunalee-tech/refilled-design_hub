@@ -28,13 +28,13 @@ export function renderSettings(main) {
     </div></div>
 
     <div class="card"><div class="card-h"><h3>팀 알림 (Slack)</h3></div><div class="card-b">
-      <div class="field"><label>Incoming Webhook URL</label>
-        <input id="s-slack" type="password" placeholder="https://hooks.slack.com/services/..." value="${esc(store.slackWebhook)}"></div>
+      <div class="field"><label>Incoming Webhook URL${store.slackWebhookFixed ? ' <span class="muted" style="font-weight:400">(서버 고정 · 테크팀 관리)</span>' : ''}</label>
+        <input id="s-slack" type="password" placeholder="https://hooks.slack.com/services/..." value="${esc(store.slackWebhook)}"${store.slackWebhookFixed ? ' readonly style="background:#F6F7F9;color:var(--muted);cursor:default"' : ''}></div>
       <div style="display:flex;gap:8px">
-        <button class="btn primary" id="s-slack-save">저장</button>
+        ${store.slackWebhookFixed ? '' : '<button class="btn primary" id="s-slack-save">저장</button>'}
         <button class="btn" id="s-slack-test">테스트 전송</button>
       </div>
-      <p class="hint">새 <b>요청 업무</b>가 등록되면 디자인팀 채널로 알림이 가요. 웹훅은 팀 공유 데이터(Supabase, 사내 구성원만 접근)에 저장돼 팀원 모두에게 적용됩니다. 발급: Slack 앱 → <b>Incoming Webhooks</b> → 채널 선택 → URL 복사.</p>
+      <p class="hint">${store.slackWebhookFixed ? '이 웹훅은 <b>서버 환경변수(<code>SLACK_WEBHOOK</code>)로 고정</b>돼 있어요 — 브라우저 저장분처럼 사라지지 않아요. 변경은 Vercel 환경변수에서 하세요(테크팀). ' : ''}새 <b>요청 업무</b>·<b>컨펌요청</b> 알림은 <b>디자인팀 업무 요청 알림</b> 봇(서버 <code>SLACK_BOT_TOKEN</code>/<code>SLACK_CHANNEL_ID</code>, 테크팀 설정)으로 발송돼요 — 컨펌요청 시 원 메시지 스레드에 댓글+멘션이 달리려면 봇이 필요합니다(스코프 <code>chat:write</code>, 채널에 봇 초대).<br>아래 <b>웹훅</b>은 봇 미설정 시 폴백 + '일정 협의 요청' 발송용이에요(스레드 댓글 불가).${store.slackWebhookFixed ? '' : ' 웹훅은 팀 공유 데이터(Supabase)에 저장돼 팀원 모두에게 적용됩니다.'}</p>
     </div></div>
 
     <div class="card"><div class="card-h"><h3>문제 해결</h3></div><div class="card-b">
@@ -44,7 +44,8 @@ export function renderSettings(main) {
     </div></div>
   </div>`;
 
-  $('#s-slack-save').onclick = () => {
+  const saveBtn = $('#s-slack-save');
+  if (saveBtn) saveBtn.onclick = () => {
     const url = $('#s-slack').value.trim();
     if (url && !url.startsWith('https://hooks.slack.com/')) return toast('슬랙 웹훅 URL 형식이 아니에요 (https://hooks.slack.com/...)', true);
     store.slackWebhook = url;

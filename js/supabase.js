@@ -18,6 +18,8 @@ const LOGIN_GUIDE = `사내 로그인이 필요해요 — 새 탭에서 ${LOGIN_
 export let supabase = null;
 /* mode: init | ready | need-login | no-config  (no-config = 로컬 정적 서버·환경변수 미설정) */
 export const supaState = { mode: 'init', detail: '' };
+/* /api/config 가 내려주는 서버 고정 설정값 (env 기반). slackWebhook 있으면 브라우저 저장분보다 우선 */
+export const serverConfig = { slackWebhook: '' };
 
 async function loadConfig() {
   let r;
@@ -40,6 +42,7 @@ export async function initSupabase() {
   if (!supabase) {
     const cfg = await loadConfig();
     if (!cfg) return false;
+    serverConfig.slackWebhook = cfg.slackWebhook || '';
     supabase = createClient(cfg.url, cfg.anonKey);
   }
   try {
