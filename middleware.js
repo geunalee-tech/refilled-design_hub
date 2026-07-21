@@ -17,7 +17,7 @@ import { verifyCfAccess } from './api/_lib/cf-access.js';
 
 export const config = {
   // /api/*는 게이트에서 제외 — 크론·노션 웹훅은 SYNC_SECRET으로,
-  // /api/db·/api/file은 함수 내부에서 같은 CF 검증을 직접 수행해요.
+  // /api/* (파일 다운로드·AI·슬랙·크론 등)은 함수 내부에서 자체 검증(CF/시크릿)을 수행해요.
   matcher: ['/((?!api/).*)'],
 };
 

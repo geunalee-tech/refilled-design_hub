@@ -49,9 +49,10 @@
   확장자 허용 필요 (테크팀). AI 스튜디오의 base64는 LLM 전송용(비저장)이라 표준 예외
 
 **정리 예정 (안정화 후):**
-- `api/db.js`(구 GitHub 동기화, 현재 미사용) 제거 — 클라이언트는 Supabase 직접 접근
+- ✅ `api/db.js`(구 GitHub 동기화) **제거 완료** — 클라이언트는 Supabase 직접 접근. (구 vercel.app 배포가 이걸로 403 내던 문제 → 현재 코드엔 GitHub 동기화 표면 없음)
+- `js/app.js`의 `wrongHostGuard`: 비정식 호스트(*.vercel.app 등) 접속 시 정식 주소(`refilled-design.constanthub.kr`)로 안내·이동. 근본 해결은 **버려진 옛 Vercel 프로젝트 삭제**(인프라).
 - `api/file.js` — 업로드(POST)는 파일허브로 대체돼 미사용. 다운로드(GET)는 구 `files/` 첨부 조회에만 필요, 구 첨부 소진 후 제거
-- `api/db.js`·`api/file.js`의 구 쿠키(hub_s) 폴백 — CF Access 안정 확인 후 제거
+- `api/file.js`의 구 쿠키(hub_s) 폴백 — CF Access 안정 확인 후 제거
 - `data/db.json`·`files/` — 읽기 전용, 더 이상 갱신되지 않음
 - 브릿지·파일허브 CORS 제약: `*.constanthub.kr`·`localhost:3000/3001`에서만 동작 (vercel.app 기본 도메인 불가)
 

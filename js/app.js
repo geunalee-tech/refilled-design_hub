@@ -87,7 +87,26 @@ async function authBox() {
   } catch {}
 }
 
+// 정식 접속 주소 — 팀 데이터(Supabase 브릿지·디렉토리·파일허브)는 *.constanthub.kr 에서만 동작(CORS).
+const CANONICAL_HOST = 'refilled-design.constanthub.kr';
+/* 비정식 호스트(옛 vercel.app 주소 등)로 들어오면 동기화가 불가하고 혼란을 주므로, 부팅 전에 정식 주소로 보냄.
+   ⚠️ 이 코드가 실린 배포에만 적용됨 — 버려진 옛 배포에는 적용 안 됨(그건 Vercel에서 프로젝트 삭제로 처리). */
+function wrongHostGuard() {
+  const h = location.hostname;
+  if (h.endsWith('.constanthub.kr') || h === 'localhost' || h === '127.0.0.1') return false;
+  const target = 'https://' + CANONICAL_HOST + location.pathname + (location.hash || '');
+  document.body.innerHTML = `<div style="max-width:520px;margin:12vh auto;padding:28px;text-align:center;font-family:system-ui,sans-serif">
+    <div style="font-size:40px">🚚</div>
+    <h2 style="margin:12px 0 8px">여긴 옛 주소예요</h2>
+    <p style="color:#666;line-height:1.6">이 주소(<b>${location.hostname}</b>)에서는 팀 데이터가 동기화되지 않아요.<br>정식 주소로 이동합니다 — <b>북마크도 아래 주소로</b> 바꿔주세요.</p>
+    <p style="margin:16px 0"><a href="${target}" style="display:inline-block;background:#2563EB;color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600">정식 주소로 이동 →</a></p>
+    <p style="color:#999;font-size:12px">${CANONICAL_HOST}</p></div>`;
+  setTimeout(() => location.replace(target), 1500);
+  return true;
+}
+
 (async function boot() {
+  if (wrongHostGuard()) return; // 비정식 주소면 여기서 중단(동기화 오류 노출 방지)
   authBox();
   syncBadge();
   route(); // localStorage 캐시로 즉시 표시
