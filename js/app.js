@@ -1,5 +1,6 @@
 /* app.js — 라우터 & 부트스트랩 */
 import { store } from './store.js';
+import { supaState, LOGIN_URL } from './supabase.js';
 import { $, $$, toast } from './ui.js';
 import { renderDashboard } from './views/dashboard.js';
 import { renderTasks } from './views/tasks.js';
@@ -44,10 +45,15 @@ function syncBadge() {
   b.style.cursor = 'pointer';
   b.onclick = async () => {
     if (!store.hasRemote()) {
-      // 진단 모드: 왜 로컬 모드인지 알려주고, 다시 연결을 시도해요
-      toast(store.serverDetail ? `자동 동기화 안 되는 이유: ${store.serverDetail}` : '팀 동기화 연결을 다시 확인하는 중…', !!store.serverDetail);
       const ok = await store.pull(); // pull()이 내부에서 재연결(브릿지 세션)까지 시도해요
-      if (ok) { toast('동기화가 연결됐어요 — 최신 데이터예요'); window.dispatchEvent(new Event('hashchange')); }
+      if (ok) { toast('동기화가 연결됐어요 — 최신 데이터예요'); window.dispatchEvent(new Event('hashchange')); return; }
+      if (supaState.mode === 'need-login') {
+        // 사내 로그인이 필요 → 로그인 탭을 열어주고, 로그인 후 배지를 다시 누르면 연결돼요
+        window.open(LOGIN_URL, '_blank', 'noopener');
+        toast('새 탭에서 사내 이메일로 로그인한 뒤, 이 배지를 다시 클릭해주세요');
+        return;
+      }
+      toast(store.serverDetail ? `자동 동기화 안 되는 이유: ${store.serverDetail}` : '팀 동기화 연결을 확인하는 중…', !!store.serverDetail);
       return;
     }
     toast('다시 동기화하는 중…');

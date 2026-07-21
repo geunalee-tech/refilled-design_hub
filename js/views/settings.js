@@ -6,11 +6,11 @@ export function renderSettings(main) {
   const s = store.settings, db = store.db;
   main.innerHTML = `
   <div class="page-head"><span class="eyebrow">Settings</span>
-    <h1>설정</h1><p>팀 공유 동기화와 AI 기능을 연결해요. 키는 이 브라우저에만 저장됩니다.</p></div>
+    <h1>설정</h1><p>AI 기능과 팀 알림을 연결해요. 키는 이 브라우저에만 저장됩니다. (팀 동기화는 자동 — 좌측 하단 배지에서 상태 확인)</p></div>
 
   <div class="grid2">
     <div class="card"><div class="card-h"><h3>내 정보 · 팀원</h3></div><div class="card-b">
-      <div class="field"><label>내 이름 (커밋/문서 작성자에 표시)</label><input id="s-name" value="${esc(s.userName)}" placeholder="예: 근아"></div>
+      <div class="field"><label>내 이름 (문서 작성자·대시보드 인사에 표시)</label><input id="s-name" value="${esc(s.userName)}" placeholder="예: 근아"></div>
       <label style="font-size:11.5px;font-weight:600;color:var(--muted)">팀원 목록</label>
       <div id="s-members" style="margin:8px 0">
         ${db.members.map(m => `<div class="goal-row" data-mid="${m.id}">
@@ -21,16 +21,6 @@ export function renderSettings(main) {
         <input id="s-new-mname" placeholder="이름" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 10px">
         <input id="s-new-mrole" placeholder="역할" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 10px">
         <button class="btn sm" id="s-madd">추가</button></div>
-    </div></div>
-
-    <div class="card"><div class="card-h"><h3>팀 공유 동기화 (Supabase)</h3></div><div class="card-b">
-      <p class="hint" style="margin-top:0">사내 로그인(Cloudflare Access)만 돼 있으면 자동으로 연결돼요 — 토큰·설정이 필요 없어요.
-        현재 상태: <b id="s-sync-state">${store.hasRemote() ? '연결됨 ✓' : '로컬 모드'}</b>${store.serverDetail ? `<br><span class="muted">${esc(store.serverDetail)}</span>` : ''}</p>
-      <div style="display:flex;gap:8px">
-        <button class="btn primary" id="s-pull">지금 불러오기</button>
-        <button class="btn" id="s-diag">동기화 진단</button></div>
-      <pre id="s-diag-out" style="display:none;background:#F6F7F9;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.7;white-space:pre-wrap;margin-top:8px"></pre>
-      <div class="ai-note">연결이 안 되면 새 탭에서 <a href="https://data.constanthub.kr" target="_blank" rel="noopener"><b>data.constanthub.kr</b></a>에 사내 이메일로 로그인한 뒤 "지금 불러오기"를 눌러주세요.</div>
     </div></div>
 
     <div class="card"><div class="card-h"><h3>AI 기능</h3></div><div class="card-b">
@@ -73,25 +63,6 @@ export function renderSettings(main) {
     db.members = db.members.filter(m => m.id !== b.dataset.mdel);
     store.save(); renderSettings(main);
   });
-
-  $('#s-pull').onclick = async () => {
-    const ok = await store.pull(); // 내부에서 브릿지 재연결까지 시도
-    toast(ok ? '최신 데이터를 불러왔어요' : (store.serverDetail || store.lastError || '연결 실패'), !ok);
-    window.dispatchEvent(new Event('hashchange'));
-  };
-  $('#s-diag').onclick = async () => {
-    const box = $('#s-diag-out'); box.style.display = 'block'; box.textContent = '진단 중…';
-    const out = [];
-    try {
-      const r = await fetch('/api/config');
-      const j = await r.json().catch(() => ({}));
-      out.push(`① 연결 정보 (/api/config): ${r.ok ? '✅ 정상' : '⛔ ' + r.status + (j.error ? ' — ' + j.error : '')}`);
-    } catch (e) { out.push('① 연결 정보 (/api/config): ⛔ 연결 실패 — ' + e.message); }
-    out.push(`② 사내 인증 브릿지: ${store.hasRemote() ? '✅ 세션 있음' : '⛔ ' + (store.serverDetail || '미연결')}`);
-    out.push(`③ 현재 모드: ${store.hasRemote() ? 'Supabase 팀 동기화' : '로컬'} · 상태: ${store.status}${store.lastError ? ' · 마지막 오류: ' + store.lastError : ''}`);
-    out.push(`④ 멤버 수: ${store.db.members.length}명 (${store.db.members.map(m => m.name).join(', ')})`);
-    box.textContent = out.join('\n');
-  };
 
   $('#s-akey-save').onclick = () => {
     s.geminiKey = $('#s-gkey').value.trim();
