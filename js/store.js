@@ -505,6 +505,8 @@ class Store {
      원 메시지 ts(봇 발송분)가 있으면 그 스레드에 댓글, 없으면(임포트·구 업무·봇 이후 등록분)
      새 메시지로 발송하고 그 ts를 앵커로 저장 → 이후 회수도 가능. 봇 실패 시 웹훅 폴백. */
   async notifyConfirmUpdate(t) {
+    return false; // 컨펌 단계 전환 알림 비활성화 (채널 소음 — 요청자 요청). 호출부는 이미 제거됨, 이건 최후 안전장치.
+    // eslint-disable-next-line no-unreachable
     if (!t || t.kind !== 'request') return false;
     const proj = this.projectName(t.project);
     const title = (t.project && proj !== '기타' && !t.title.trim().startsWith('[') ? `[${proj}] ` : '') + t.title;
