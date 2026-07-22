@@ -168,9 +168,10 @@ class Store {
   }
 
   /* ── 사내 디렉토리 연동: 내 이름 + 디자인팀 구성원 자동 반영 ──
-     기존 멤버는 이름으로 매칭해 id를 보존(과거 업무의 담당자 참조 유지),
-     새 구성원은 표준대로 email을 id로 추가해요. 퇴사자는 자동 삭제하지 않아요
-     (과거 업무 표시용) — 필요 시 디렉토리에 없는 멤버만 수동 정리. */
+     로스터를 디렉토리에 그대로 미러링해요(사내 표준: 명단을 복사해두지 않음 — 사본은 팀 이동이 반영 안 됨).
+     기존 멤버는 이름으로 매칭해 id를 보존(과거 업무의 담당자 참조 유지), 새 구성원은 email을 id로 추가,
+     그리고 더 이상 디자인팀이 아닌 사람(팀 이동·퇴사)은 로스터에서 제거해요.
+     과거 업무의 assignees에 남은 id는 memberName 조회 시 '미지정'으로 표시(이름 노출 안 됨). */
   async syncDirectory() {
     if (this._dirSynced) return;
     try {
@@ -181,7 +182,7 @@ class Store {
         this.settings.userName = me.name; this.saveSettings(); // 디렉토리가 원천 — 항상 동기화
       }
       const design = members.filter(m => (m.teamName || '').includes('디자인'));
-      if (design.length) { // 필터 결과가 비면 건드리지 않음 (안전)
+      if (design.length) { // 필터 결과가 비면 건드리지 않음 (디렉토리 오류 시 로스터 보호)
         let changed = false;
         for (const d of design) {
           const ex = this.db.members.find(m => m.email === d.email || m.name === d.name);
@@ -196,7 +197,16 @@ class Store {
             changed = true;
           }
         }
-        if (changed) this.save();
+        // 디렉토리 디자인팀에 없는 로스터 멤버 제거 (팀 이동·퇴사 반영). email 우선, 이름 폴백으로 매칭
+        const validEmail = new Set(design.map(d => d.email).filter(Boolean));
+        const validName = new Set(design.map(d => d.name).filter(Boolean));
+        const stale = this.db.members.filter(m => !(validEmail.has(m.email) || validName.has(m.name)));
+        if (stale.length) {
+          const staleIds = new Set(stale.map(m => m.id));
+          this.db.members = this.db.members.filter(m => !staleIds.has(m.id));
+          changed = true;
+        }
+        if (changed) this.save(); // 변경 멤버 upsert + 제거 멤버 행 삭제(행 단위 diff)
       }
       this._dirSynced = true;
       this.emit();
