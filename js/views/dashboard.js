@@ -4,6 +4,16 @@ import { esc, fmtDate, dday } from '../ui.js';
 
 let dashMonth = null; // 캘린더 표시 월(YYYY-MM) — prev/next로 이동
 
+// 담당자 색(캘린더·업무 카드 공통). renderDashboard 진입 시 채워짐
+const MCOLORS = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A', '#C2410C', '#0891B2', '#7C3AED', '#DB2777'];
+let _memColor = {};
+/* 담당자를 컬러 칩으로 강조 (더 잘 보이게) */
+const assigneeChips = t => {
+  const ids = t.assignees || [];
+  if (!ids.length) return '<span class="asg asg-none">미지정</span>';
+  return ids.map(id => { const c = _memColor[id] || '#9AA1AC'; return `<span class="asg" style="background:${c}1e;color:${c}"><i style="background:${c}"></i>${esc(store.memberName(id))}</span>`; }).join('');
+};
+
 const taskRow = t => `
   <div class="tk-row">
     <div class="tk-dot ${t.status}"></div>
@@ -11,7 +21,7 @@ const taskRow = t => `
       <div class="tk-title" style="font-size:13.5px">${esc(t.title)}</div>
       <div class="tk-meta" style="font-size:11.5px">
         ${t.due ? `<b class="tk-dd ${t.due < todayISO() ? 'over' : (dday(t.due).match(/D-[0-3]$/) ? 'warn' : '')}">${dday(t.due)}</b><span class="mono" style="font-size:10px">${t.due.slice(5).replace('-', '/')}</span>` : ''}
-        <span>${esc(store.assigneeNames(t))}</span>
+        ${assigneeChips(t)}
         ${t.kind === 'request' && t.requester ? `<span class="muted">요청 ${esc(t.requester)}</span>` : ''}
         ${t.project ? `<span class="muted">${esc(store.projectName(t.project))}</span>` : ''}
       </div>
@@ -51,9 +61,8 @@ export function renderDashboard(main) {
 
   // ── 월 캘린더: 요청 마감 + 프로젝트 마일스톤을 담당자 색으로 (담당자별 뷰를 색으로 흡수) ──
   if (!dashMonth) dashMonth = today.slice(0, 7);
-  const MCOLORS = ['#006DE2', '#0F7B5F', '#B7791F', '#6B5CA5', '#8A3B5E', '#3B7A8A', '#C2410C', '#0891B2', '#7C3AED', '#DB2777'];
-  const memColor = {}; db.members.forEach((m, i) => memColor[m.id] = MCOLORS[i % MCOLORS.length]);
-  const colorOf = ids => { const id = (ids || [])[0]; return id && memColor[id] ? memColor[id] : '#9AA1AC'; };
+  _memColor = {}; db.members.forEach((m, i) => _memColor[m.id] = MCOLORS[i % MCOLORS.length]);
+  const colorOf = ids => { const id = (ids || [])[0]; return id && _memColor[id] ? _memColor[id] : '#9AA1AC'; };
   const [cy, cm] = dashMonth.split('-').map(Number);
   const monthLabel = `${cy}년 ${cm}월`;
   const daysInMonth = new Date(cy, cm, 0).getDate();
@@ -79,7 +88,7 @@ export function renderDashboard(main) {
     const more = evs.length > 3 ? `<div class="cal-more" title="${esc(evs.slice(3).map(e => e.label).join(', '))}">+${evs.length - 3}건 더</div>` : '';
     return `<div class="cal-cell ${iso === today ? 'today' : ''}"><div class="cal-daynum">${d}</div>${chips}${more}</div>`;
   }).join('');
-  const calLegend = db.members.map(m => `<span><i style="background:${memColor[m.id]}"></i>${esc(m.name)}</span>`).join('') + '<span><i style="background:#9AA1AC"></i>미지정</span>';
+  const calLegend = db.members.map(m => `<span><i style="background:${_memColor[m.id]}"></i>${esc(m.name)}</span>`).join('') + '<span><i style="background:#9AA1AC"></i>미지정</span>';
 
   const d = new Date();
   main.innerHTML = `
@@ -97,14 +106,6 @@ export function renderDashboard(main) {
     </div>
   </div>
 
-  ${msAlerts.length ? `<div class="card" style="margin-bottom:20px"><div class="card-h"><h3>🔔 프로젝트 마일스톤</h3><span class="sub">임박·최근 (−3 ~ +7일) · 클릭 시 타임라인</span></div>
-    <div class="card-b">${msAlerts.map(a => { const c = a.mk?.color || '#9AA1AC'; const nm = a.mk?.name || '일정'; return `
-      <div class="tk-row" style="cursor:pointer" onclick="location.hash='#/tasks/projects'">
-        <span style="background:${c}22;color:${c};border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;flex-shrink:0">${esc(nm)}</span>
-        <div class="tk-main"><div class="tk-title" style="font-size:13px">${esc(a.proj)} · ${esc(a.task)}</div>
-          <div class="tk-meta" style="font-size:11.5px"><b class="tk-dd ${a.overdue ? 'over' : 'warn'}">${a.date.slice(5).replace('-', '/')} · ${dday(a.date)}</b><span>${esc(store.assigneeNames({ assignees: a.assignees }))}</span></div></div>
-      </div>`; }).join('')}</div></div>` : ''}
-
   <div class="dash-cols">
     <div class="card"><div class="card-h"><h3>오늘 할 일</h3><span class="sub">${fmtDate(today)}</span></div>
       <div class="card-b">${todayTasks.map(taskRow).join('') || '<div class="empty">오늘 마감/진행 업무가 없어요</div>'}</div></div>
@@ -113,9 +114,17 @@ export function renderDashboard(main) {
     <div class="card"><div class="card-h"><h3>예정된 일정</h3><span class="sub">향후 7일</span></div>
       <div class="card-b">${Object.entries(upcoming).map(([d, list]) => `
         <div class="sched-day"><div class="sd-label">${fmtDate(d)} · ${dday(d)}</div>
-        ${list.map(t => `<div class="tk-title" style="font-size:13.5px;padding:3px 0">· ${esc(t.title)} <span class="muted" style="font-size:12px">${esc(store.assigneeNames(t))}</span></div>`).join('')}</div>`).join('')
+        ${list.map(t => `<div class="tk-title" style="font-size:13.5px;padding:3px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">· ${esc(t.title)} ${assigneeChips(t)}</div>`).join('')}</div>`).join('')
         || '<div class="empty">7일 내 예정 일정이 없어요</div>'}</div></div>
   </div>
+
+  ${msAlerts.length ? `<div class="card" style="margin-bottom:20px"><div class="card-h"><h3>🔔 프로젝트 마일스톤</h3><span class="sub">임박·최근 (−3 ~ +7일) · 클릭 시 타임라인</span></div>
+    <div class="card-b">${msAlerts.map(a => { const c = a.mk?.color || '#9AA1AC'; const nm = a.mk?.name || '일정'; return `
+      <div class="tk-row" style="cursor:pointer" onclick="location.hash='#/tasks/projects'">
+        <span style="background:${c}22;color:${c};border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;flex-shrink:0">${esc(nm)}</span>
+        <div class="tk-main"><div class="tk-title" style="font-size:13px">${esc(a.proj)} · ${esc(a.task)}</div>
+          <div class="tk-meta" style="font-size:11.5px"><b class="tk-dd ${a.overdue ? 'over' : 'warn'}">${a.date.slice(5).replace('-', '/')} · ${dday(a.date)}</b>${assigneeChips({ assignees: a.assignees })}</div></div>
+      </div>`; }).join('')}</div></div>` : ''}
 
   <style>
     .cal-toolbar{display:flex;align-items:center;gap:6px}
@@ -133,6 +142,9 @@ export function renderDashboard(main) {
     .cal-cell.today .cal-daynum{color:#006DE2}
     .cal-ev{font-size:10.5px;font-weight:600;border-radius:5px;padding:2px 6px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
     .cal-more{font-size:10px;color:#8a909a;padding-left:3px;cursor:default}
+    .asg{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin-right:2px}
+    .asg i{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
+    .asg-none{background:#eef1f5;color:#8a909a}
   </style>
   <div class="card" style="margin-bottom:20px"><div class="card-h">
       <h3>${monthLabel} 일정 <span class="sub">요청 마감 · 프로젝트 마일스톤 · 담당자 색</span></h3>

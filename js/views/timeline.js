@@ -70,7 +70,9 @@ export function renderTimeline(main) {
   const subOf = pid => db.tasks.filter(t => t.kind === 'project' && t.project === pid);
 
   /* ── 범위: 마일스톤 최소~최대 + 오늘, 월 경계로 스냅 ── */
-  let lo = today, hi = addDays(today, 30);
+  let lo = today;
+  const hi3 = new Date(today + 'T00:00:00'); hi3.setMonth(hi3.getMonth() + 3);
+  let hi = localISO(hi3); // 오늘로부터 최소 +3개월까지 항상 보이게, 이후는 마일스톤 따라 자동 연장
   db.tasks.forEach(t => { if (t.kind === 'project' && active.some(p => p.id === t.project)) (t.milestones || []).forEach(m => { if (m.date) { if (m.date < lo) lo = m.date; if (m.date > hi) hi = m.date; } }); });
   const rangeStart = lo.slice(0, 8) + '01';
   _rangeStart = rangeStart;
