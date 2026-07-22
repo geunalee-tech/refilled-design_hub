@@ -53,7 +53,7 @@ function fileRows() {
   if (fq) { const k = fq.toLowerCase(); list = list.filter(a => (a.title + ' ' + (a.tags || '')).toLowerCase().includes(k)); }
   return list.map(a => `<tr>
       <td><a class="flink" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.title)}</a>
-        ${a.notes ? `<div class="muted" style="font-size:11px;margin-top:2px">${esc(a.notes)}</div>` : ''}</td>
+        ${a.notes ? `<div class="muted" style="font-size:12px;margin-top:3px">${esc(a.notes)}</div>` : ''}</td>
       <td class="mono">${esc(a.version || '—')}</td>
       <td>${splitTags(a.tags).map(t => `<span class="tag gray" style="margin:1px">${esc(t)}</span>`).join('')}</td>
       <td>${esc(store.memberName(a.owner))}</td>

@@ -461,20 +461,20 @@ function renderWig(main) {
 
   <div class="card wig-sec"><div class="card-h"><h3>1️⃣ 지난 주 공약 체크</h3>
     ${pc.length ? `<span class="tag ${pcDone === pc.length ? 'green' : 'gray'}">${pcDone}/${pc.length} 달성</span>` : ''}</div>
-    ${sec1}</div>
+    <div class="card-b">${sec1}</div></div>
 
   <div class="card wig-sec"><div class="card-h"><h3>2️⃣ 선행지표 스코어보드</h3>
-    <span class="muted" style="font-size:11px">누적·달성률·신호등은 자동 계산 (월 경과 페이스 기준)</span></div>
-    ${sec2}</div>
+    <span class="muted" style="font-size:11.5px">누적·달성률·신호등은 자동 계산 (월 경과 페이스 기준)</span></div>
+    <div class="card-b">${sec2}</div></div>
 
   <div class="card wig-sec"><div class="card-h"><h3>3️⃣ 후행지표 — 결과가 따라오고 있나</h3></div>
-    ${sec3}
-    <textarea id="w-eval" rows="2" placeholder="선행 → 후행 연결 평가 (레버가 결과를 움직이고 있는지 한 줄 평)" style="width:100%;margin-top:8px">${esc(cur.data.evalNote || '')}</textarea></div>
+    <div class="card-b">${sec3}
+    <textarea id="w-eval" rows="2" placeholder="선행 → 후행 연결 평가 (레버가 결과를 움직이고 있는지 한 줄 평)" style="width:100%;margin-top:10px">${esc(cur.data.evalNote || '')}</textarea></div></div>
 
   <div class="card wig-sec"><div class="card-h"><h3>4️⃣ 이번 주 공약 — 다음 주에 확인할 것</h3>
     <button class="btn sm" id="w-addcmt">+ 공약 추가</button></div>
-    ${sec4 || '<div class="empty" style="padding:10px 4px">아직 공약이 없어요. 팀원별로 이번 주 가장 중요한 한 가지를 약속해보세요.</div>'}
-    <p class="muted" style="font-size:11px;margin:8px 0 0">여기 적은 공약은 다음 주 세션의 1️⃣에 자동으로 나타나요. 모든 변경은 자동 저장돼요.</p></div>`;
+    <div class="card-b">${sec4 || '<div class="empty" style="padding:10px 4px">아직 공약이 없어요. 팀원별로 이번 주 가장 중요한 한 가지를 약속해보세요.</div>'}
+    <p class="muted" style="font-size:11.5px;margin:10px 0 0">여기 적은 공약은 다음 주 세션의 1️⃣에 자동으로 나타나요. 모든 변경은 자동 저장돼요.</p></div></div>`;
 
   /* ── 바인딩 ── */
   main.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; renderRituals(main); });

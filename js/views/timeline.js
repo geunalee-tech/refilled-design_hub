@@ -152,11 +152,11 @@ export function renderTimeline(main) {
   const doneList = archived
     .filter(p => !doneQ || p.name.toLowerCase().includes(doneQ.toLowerCase()))
     .sort((a, b) => String(b.archivedAt || '').localeCompare(String(a.archivedAt || '')))
-    .map(p => `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px">
-      <b style="flex:1">${esc(p.name)}</b>
-      <span class="muted" style="font-size:11px">하위 ${subOf(p.id).length}건 · ${esc(store.memberName(p.owner))}${p.archivedAt ? ' · 완료 ' + p.archivedAt.slice(0, 10) : ''}</span>
+    .map(p => `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px">
+      <b style="flex:1;font-size:13.5px">${esc(p.name)}</b>
+      <span class="muted" style="font-size:12px">하위 ${subOf(p.id).length}건 · ${esc(store.memberName(p.owner))}${p.archivedAt ? ' · 완료 ' + p.archivedAt.slice(0, 10) : ''}</span>
       <button class="btn sm" data-unarch="${p.id}">되돌리기</button>
-    </div>`).join('') || `<div class="empty" style="padding:12px">${doneQ ? '검색 결과가 없어요' : '완료 처리된 프로젝트가 없어요'}</div>`;
+    </div>`).join('') || `<div class="empty" style="padding:14px 4px">${doneQ ? '검색 결과가 없어요' : '완료 처리된 프로젝트가 없어요'}</div>`;
 
   main.innerHTML = `
   <div class="page-head"><span class="eyebrow">Task Stream</span>
@@ -184,9 +184,9 @@ export function renderTimeline(main) {
       </div>
     </div>
   </div>
-  <details class="card" style="margin-top:16px" ${doneQ ? 'open' : ''}><summary style="cursor:pointer;font-weight:700;padding:4px 2px">완료 프로젝트 <span class="muted" style="font-weight:400">${archived.length}건</span></summary>
-    <div style="margin-top:10px">
-      <input id="tl-doneq" placeholder="완료 프로젝트 이름 검색" value="${esc(doneQ)}" style="border:1px solid var(--line);border-radius:8px;padding:7px 11px;width:260px;margin-bottom:10px">
+  <details class="done-sec" style="margin-top:18px" ${doneQ ? 'open' : ''}><summary>완료 프로젝트 <span class="cnt">${archived.length}건</span></summary>
+    <div style="padding:2px 16px 16px">
+      <input id="tl-doneq" placeholder="완료 프로젝트 이름 검색" value="${esc(doneQ)}" style="border:1px solid var(--line);border-radius:8px;padding:8px 11px;width:280px;margin-bottom:12px;font-size:13px">
       ${doneList}
     </div>
   </details>`;
