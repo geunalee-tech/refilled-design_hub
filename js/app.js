@@ -8,7 +8,6 @@ import { renderRituals } from './views/rituals.js';
 import { renderArchive } from './views/archive.js';
 import { renderStudio } from './views/studio.js';
 import { renderSettings } from './views/settings.js';
-import { renderBackfill } from './views/backfill.js';
 
 const routes = {
   dashboard: renderDashboard,
@@ -17,7 +16,6 @@ const routes = {
   archive: renderArchive,
   studio: renderStudio,
   settings: renderSettings,
-  backfill: renderBackfill, // 1회용 백필(내비 미노출) — 반영 후 제거 예정
 };
 
 function route() {
