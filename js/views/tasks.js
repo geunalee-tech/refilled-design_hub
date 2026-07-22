@@ -97,10 +97,7 @@ export function renderTasks(main, sub = '') {
         t.status = e.target.dataset.move;
         if (t.status === 'done') t.doneAt = todayISO(); else delete t.doneAt;
         store.save(); renderTasks(main, sub);
-        if (t.status === 'confirm' && prev !== 'confirm' && t.kind === 'request') {
-          store.notifyConfirmUpdate(t).then(ok =>
-            toast(ok ? '컨펌 요청 알림을 슬랙에 보냈어요' : '슬랙 알림을 못 보냈어요 — 봇 토큰/웹훅 설정을 확인해주세요', !ok));
-        }
+        // 컨펌 단계 전환 슬랙 알림은 채널 소음이 커서 비활성화 (요청자 요청). 새 요청 알림만 유지.
       } else if (e.target.matches('[data-slack]')) {
         e.stopPropagation();
         const t = store.db.tasks.find(x => x.id === el.dataset.task);
@@ -525,12 +522,9 @@ export function editTask(id, isRequest = false, preset = {}) {
         }
       }
       if (data.status === 'done') data.doneAt = (id && t.doneAt) || todayISO();
-      let confirmNotify = null;
       if (id) {
-        const prevStatus = t.status;
         if (data.status !== 'done') delete t.doneAt;
         Object.assign(t, data);
-        if (t.status === 'confirm' && prevStatus !== 'confirm' && t.kind === 'request') confirmNotify = t;
       }
       else {
         const nt = { id: uid(), createdAt: new Date().toISOString(), ...data };
@@ -545,10 +539,7 @@ export function editTask(id, isRequest = false, preset = {}) {
         }
       }
       store.save(); closeModal(); toast('저장했어요');
-      if (confirmNotify) {
-        store.notifyConfirmUpdate(confirmNotify).then(ok =>
-          toast(ok ? '컨펌 요청 알림을 슬랙에 보냈어요' : '슬랙 알림을 못 보냈어요 — 봇 토큰/웹훅 설정을 확인해주세요', !ok));
-      }
+      // 컨펌 단계 전환 슬랙 알림은 비활성화 (채널 소음 방지 — 요청자 요청)
       window.dispatchEvent(new Event('hashchange'));
     };
     const del = q('#t-del');
