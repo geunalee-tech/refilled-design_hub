@@ -1,6 +1,31 @@
 /* dashboard.js — 메인 써머리 */
 import { store, todayISO } from '../store.js';
-import { esc, fmtDate, dday } from '../ui.js';
+import { esc, fmtDate, dday, openModal, closeModal } from '../ui.js';
+import { editTask } from './tasks.js';
+
+/* 마일스톤 클릭 팝업 — 이동 대신 마커 변경 + 진행상황 체크 (타임라인 편집과 동일 데이터) */
+const TL_ST = { wait: { label: '대기중', color: '#9AA1AC' }, doing: { label: '진행중', color: '#D97706' }, done: { label: '완료', color: '#059669' } };
+function openMsModal(tid, mi) {
+  const t = store.db.tasks.find(x => x.id === tid); if (!t || !t.milestones?.[mi]) return;
+  const m = t.milestones[mi];
+  const markers = store.db.config?.timelineMarkers || [];
+  const pill = (active, color, label, attr) => `<button type="button" ${attr} style="cursor:pointer;border:1.5px solid ${active ? color : 'transparent'};background:${color}22;color:${color};border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700">${esc(label)}</button>`;
+  const picker = markers.map(mk => pill(m.typeId === mk.id, mk.color, mk.name, `data-mk="${mk.id}"`)).join('') || '<span class="muted" style="font-size:12px">마커가 없어요 — 타임라인에서 추가하세요</span>';
+  const stBtns = Object.entries(TL_ST).map(([k, v]) => pill((t.tlStatus || 'wait') === k, v.color, v.label, `data-st="${k}"`)).join('');
+  openModal(`<h2>${esc(store.projectName(t.project))} · ${esc(t.title)}</h2>
+    <div class="field"><label>날짜</label><input type="date" id="ms-date" value="${m.date}"></div>
+    <div class="field"><label>단계 (마커)</label><div style="display:flex;flex-wrap:wrap;gap:8px">${picker}</div></div>
+    <div class="field"><label>진행 상황</label><div style="display:flex;flex-wrap:wrap;gap:8px">${stBtns}</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button class="btn danger" id="ms-del">마커 삭제</button>
+      <span style="display:flex;gap:8px"><button class="btn" data-close>취소</button><button class="btn primary" id="ms-save">저장</button></span></div>`, body => {
+    let typeId = m.typeId, st = t.tlStatus || 'wait';
+    body.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => { typeId = b.dataset.mk; body.querySelectorAll('[data-mk]').forEach(x => x.style.borderColor = 'transparent'); const d = markers.find(x => x.id === typeId); b.style.borderColor = d ? d.color : '#999'; });
+    body.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { st = b.dataset.st; body.querySelectorAll('[data-st]').forEach(x => x.style.borderColor = 'transparent'); b.style.borderColor = TL_ST[st].color; });
+    body.querySelector('#ms-save').onclick = () => { m.typeId = typeId; m.date = body.querySelector('#ms-date').value || m.date; t.tlStatus = st; store.save(); closeModal(); window.dispatchEvent(new Event('hashchange')); };
+    body.querySelector('#ms-del').onclick = () => { if (!confirm('이 마커를 삭제할까요?')) return; t.milestones.splice(mi, 1); store.save(); closeModal(); window.dispatchEvent(new Event('hashchange')); };
+  });
+}
 
 let dashMonth = null; // 캘린더 표시 월(YYYY-MM) — prev/next로 이동
 
@@ -15,7 +40,7 @@ const assigneeChips = t => {
 };
 
 const taskRow = t => `
-  <div class="tk-row">
+  <div class="tk-row" data-task="${t.id}" style="cursor:pointer" title="클릭해 상세 보기·수정">
     <div class="tk-dot ${t.status}"></div>
     <div class="tk-main">
       <div class="tk-title" style="font-size:13.5px">${esc(t.title)}</div>
@@ -45,9 +70,9 @@ export function renderDashboard(main) {
   const msAlerts = [];
   db.projects.filter(p => !p.archived).forEach(p =>
     db.tasks.filter(t => t.kind === 'project' && t.project === p.id && t.tlStatus !== 'done').forEach(t =>
-      (t.milestones || []).forEach(m => {
+      (t.milestones || []).forEach((m, mi) => {
         if (m.date && m.date >= msLo && m.date <= msHi)
-          msAlerts.push({ date: m.date, proj: p.name, task: t.title, mk: mkOf(m.typeId), assignees: t.assignees || [], overdue: m.date < today });
+          msAlerts.push({ date: m.date, proj: p.name, task: t.title, mk: mkOf(m.typeId), assignees: t.assignees || [], overdue: m.date < today, tid: t.id, mi });
       })));
   msAlerts.sort((a, b) => (a.date < b.date ? -1 : 1));
 
@@ -114,13 +139,13 @@ export function renderDashboard(main) {
     <div class="card"><div class="card-h"><h3>예정된 일정</h3><span class="sub">향후 7일</span></div>
       <div class="card-b">${Object.entries(upcoming).map(([d, list]) => `
         <div class="sched-day"><div class="sd-label">${fmtDate(d)} · ${dday(d)}</div>
-        ${list.map(t => `<div class="tk-title" style="font-size:13.5px;padding:3px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap">· ${esc(t.title)} ${assigneeChips(t)}</div>`).join('')}</div>`).join('')
+        ${list.map(t => `<div class="tk-title" data-task="${t.id}" style="font-size:13.5px;padding:3px 0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;cursor:pointer" title="클릭해 상세 보기·수정">· ${esc(t.title)} ${assigneeChips(t)}</div>`).join('')}</div>`).join('')
         || '<div class="empty">7일 내 예정 일정이 없어요</div>'}</div></div>
   </div>
 
   ${msAlerts.length ? `<div class="card" style="margin-bottom:20px"><div class="card-h"><h3>🔔 프로젝트 마일스톤</h3><span class="sub">임박·최근 (−3 ~ +7일) · 클릭 시 타임라인</span></div>
     <div class="card-b">${msAlerts.map(a => { const c = a.mk?.color || '#9AA1AC'; const nm = a.mk?.name || '일정'; return `
-      <div class="tk-row" style="cursor:pointer" onclick="location.hash='#/tasks/projects'">
+      <div class="tk-row" style="cursor:pointer" data-msrow="${a.tid}:${a.mi}" title="클릭해 마커·진행상황 변경">
         <span style="background:${c}22;color:${c};border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;flex-shrink:0">${esc(nm)}</span>
         <div class="tk-main"><div class="tk-title" style="font-size:13px">${esc(a.proj)} · ${esc(a.task)}</div>
           <div class="tk-meta" style="font-size:11.5px"><b class="tk-dd ${a.overdue ? 'over' : 'warn'}">${a.date.slice(5).replace('-', '/')} · ${dday(a.date)}</b>${assigneeChips({ assignees: a.assignees })}</div></div>
@@ -163,4 +188,14 @@ export function renderDashboard(main) {
   main.querySelector('#cal-prev').onclick = () => shiftMonth(-1);
   main.querySelector('#cal-next').onclick = () => shiftMonth(1);
   main.querySelector('#cal-today').onclick = () => { dashMonth = todayISO().slice(0, 7); renderDashboard(main); };
+
+  // 업무 클릭 → 상세/수정 팝업 (요청 여부 자동 판별)
+  main.querySelectorAll('[data-task]').forEach(el => el.onclick = () => {
+    const tk = store.db.tasks.find(x => x.id === el.dataset.task);
+    if (tk) editTask(tk.id, tk.kind === 'request');
+  });
+  // 마일스톤 클릭 → 이동 대신 마커·진행상황 변경 팝업
+  main.querySelectorAll('[data-msrow]').forEach(el => el.onclick = () => {
+    const [tid, mi] = el.dataset.msrow.split(':'); openMsModal(tid, +mi);
+  });
 }
